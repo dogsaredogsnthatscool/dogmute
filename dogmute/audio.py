@@ -1,14 +1,24 @@
-"""Discord's playback stream (what you hear from the call), captured in memory through PipeWire.
-Nothing is written to disk."""
+"""Discord's playback stream (what you hear from the call), captured in memory: through PipeWire on Linux, and on macOS
+through bin/dogmute-listen (ScreenCaptureKit, or a BlackHole loopback device). Nothing is written to disk."""
 import json
+import os
 import subprocess
+import sys
 import threading
 import time
+from pathlib import Path
 
 import numpy as np
 
 RATE = 16000
 BLOCK = 320  # 20 ms
+MAC = sys.platform == "darwin"
+HELPER = Path(os.environ.get("DOGMUTE_LISTEN", Path(__file__).resolve().parent.parent / "bin" / "dogmute-listen"))
+DISCORD_BUNDLE = "com.hnc.Discord"           # a prefix: also PTB, Canary and Discord's helper processes
+LOOPBACK = ("blackhole", "loopback", "soundflower")
+WAITING = "waiting for Discord audio"       # the setup page knows this one
+PERMISSION = {"screen": "macOS needs your OK: allow Screen & System Audio Recording for Python",
+              "microphone": "macOS needs your OK: allow Microphone for Python (to read the loopback device)"}
 
 
 def _dump():
@@ -31,8 +41,48 @@ def _label(p):
     return f"{app} · {p.get('media.name') or p.get('node.name') or '?'}"
 
 
+def _mac_list():
+    try:
+        return json.loads(subprocess.run([str(HELPER), "list"], capture_output=True, timeout=8).stdout or b"{}")
+    except Exception:
+        return {}
+
+
+def mac_streams(info=None):
+    """macOS sources: apps with a window (ScreenCaptureKit), every app's sound, and loopback devices such as BlackHole."""
+    info = _mac_list() if info is None else info
+    out, seen = [], set()
+    for a in sorted(info.get("apps", []), key=lambda a: a.get("name", "").lower()):
+        b, name = a.get("bundle", ""), a.get("name", "")
+        if not b or b in seen or ".helper" in b.lower() or b.startswith("org.python"):
+            continue
+        seen.add(b)
+        out.append({"key": f"app:{b}", "label": name or b, "discord": b.startswith(DISCORD_BUNDLE)})
+    out.append({"key": "all", "label": "Every app's sound on this Mac", "discord": False})
+    for d in info.get("devices", []):
+        if any(w in d.lower() for w in LOOPBACK):
+            out.append({"key": f"device:{d}", "label": f"{d} (loopback device)", "discord": False})
+    return out
+
+
+def mac_source(target):
+    """dogmute-listen's arguments for an audio.target, or None. "" = Discord through ScreenCaptureKit (macOS 13+)."""
+    if not target:
+        return ["app", DISCORD_BUNDLE]
+    if target == "all":
+        return ["all"]
+    kind, _, rest = target.partition(":")
+    if kind == "app" and rest:
+        return ["app", rest]
+    if kind == "device" and any(w in rest.lower() for w in LOOPBACK):   # never a microphone
+        return ["device", rest]
+    return None
+
+
 def streams(dump=None):
     """Every app playing sound right now: [{"key", "label", "discord"}] (key = what audio.target stores)."""
+    if MAC:
+        return mac_streams()
     out = []
     for o in dump if dump is not None else _dump():
         p = (o.get("info") or {}).get("props") or {}
@@ -114,8 +164,25 @@ class Capture(threading.Thread):
         self.status = "starting"
         self.proc = None
         self.stop = False
+        self.asked = False        # macOS: show the permission prompt once per run, not every retry
+
+    def _read(self, first=None):
+        need = BLOCK * 4
+        pending = b""
+        while not self.stop:
+            chunk = self.proc.stdout.read(need - len(pending))
+            if not chunk:
+                break
+            pending += chunk
+            if len(pending) == need:
+                if first:
+                    self.status, first = first, None
+                self.on_block(np.frombuffer(pending, np.float32), time.monotonic())
+                pending = b""
 
     def run(self):
+        if MAC:
+            return self._run_mac()
         while not self.stop:
             node = find_play_stream(target=self.target())
             if not node:
@@ -130,17 +197,8 @@ class Capture(threading.Thread):
             self.status = "listening"
             checker = threading.Thread(target=self._watch, args=(nid, self.proc), daemon=True)
             checker.start()
-            need = BLOCK * 4
-            pending = b""
             try:
-                while not self.stop:
-                    chunk = self.proc.stdout.read(need - len(pending))
-                    if not chunk:
-                        break
-                    pending += chunk
-                    if len(pending) == need:
-                        self.on_block(np.frombuffer(pending, np.float32), time.monotonic())
-                        pending = b""
+                self._read()
             finally:
                 self.proc.kill()
                 self.proc.wait()
@@ -159,3 +217,40 @@ class Capture(threading.Thread):
                 proc.kill()
                 return
             time.sleep(5)
+
+    def _run_mac(self):
+        """bin/dogmute-listen does the listening; it exits when its source goes away and tells why in its exit code."""
+        while not self.stop:
+            target = self.target()
+            args = mac_source(target)
+            if not HELPER.exists():
+                self.status = "the macOS sound helper is missing: run ./install.sh again"
+                time.sleep(5)
+                continue
+            if not args:
+                self.status = "that sound source is gone"
+                time.sleep(3)
+                continue
+            if not self.asked:
+                args, self.asked = args + ["--ask"], True
+            self.status = WAITING if not target else f"waiting for sound from {target.partition(':')[2] or 'every app'}"
+            self.proc = subprocess.Popen([str(HELPER), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+            try:
+                self._read(first="listening")
+            finally:
+                self.proc.kill()
+                code = self.proc.wait()
+                err = self.proc.stderr.read().decode(errors="replace").strip().splitlines()
+            self.status, wait = self._mac_status(code, err[-1] if err else "", target)
+            time.sleep(wait)
+
+    def _mac_status(self, code, err, target):
+        if code == 3:
+            return PERMISSION["microphone" if "microphone" in err else "screen"], 5
+        if code == 2:
+            return (WAITING if not target else "that sound source is gone"), 3
+        if code == 4:
+            return "this Mac needs macOS 13 or newer to hear Discord: pick a BlackHole device instead", 10
+        if code in (0, -9):
+            return "reconnecting", 1
+        return f"sound helper stopped: {err or code}", 3

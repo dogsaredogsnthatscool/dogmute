@@ -2,6 +2,8 @@
 import asyncio
 import json
 import os
+import subprocess
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -101,7 +103,10 @@ def serve(core):
             elif path == "/api/hook/test":
                 core.hook.hit(d.get("name") or "Test", "test")
             elif path == "/api/restart":
-                threading.Timer(0.3, lambda: os._exit(0)).start()  # systemd starts us again
+                threading.Timer(0.3, lambda: os._exit(0)).start()  # systemd (Linux) or launchd (macOS) starts us again
+            elif path == "/api/privacy" and sys.platform == "darwin":   # macOS: the Privacy & Security page to allow capture
+                pane = "Privacy_Microphone" if d.get("pane") == "microphone" else "Privacy_ScreenCapture"
+                subprocess.Popen(["open", f"x-apple.systempreferences:com.apple.preference.security?{pane}"])
             elif path == "/api/words":
                 core.set_words(d["text"])
             elif path == "/api/setup":

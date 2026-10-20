@@ -4,6 +4,7 @@ import glob
 import json
 import os
 import struct
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -39,10 +40,21 @@ class RPCError(Exception):
         self.code = code
 
 
-def find_socket():
+def socket_dirs():
+    """Where the Discord app puts discord-ipc-N: $TMPDIR on macOS, $XDG_RUNTIME_DIR (or its Flatpak/Snap folder) on Linux."""
+    if sys.platform == "darwin":
+        dirs = [os.environ.get("TMPDIR", "")]
+        try:
+            dirs.append(os.confstr(65537))   # _CS_DARWIN_USER_TEMP_DIR: the same folder, for when TMPDIR isn't passed on
+        except (OSError, ValueError):
+            pass
+        return [d.rstrip("/") for d in dirs if d] + ["/tmp"]
     run = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
-    for d in (run, f"{run}/app/com.discordapp.Discord", f"{run}/snap.discord",
-              f"{run}/app/com.discordapp.DiscordCanary", "/tmp"):
+    return [run, f"{run}/app/com.discordapp.Discord", f"{run}/snap.discord", f"{run}/app/com.discordapp.DiscordCanary", "/tmp"]
+
+
+def find_socket():
+    for d in socket_dirs():
         for p in sorted(glob.glob(f"{d}/discord-ipc-[0-9]")):
             return p
     return None
