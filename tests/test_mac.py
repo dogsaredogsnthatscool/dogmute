@@ -1,5 +1,4 @@
 """The macOS paths, run on any OS: Discord's socket in $TMPDIR, sound sources, the helper's exit codes, MLX speech."""
-import socket
 import sys
 import textwrap
 import time
@@ -13,12 +12,8 @@ from dogmute import audio, rpc, stt
 def test_socket_in_tmpdir(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "platform", "darwin")
     monkeypatch.setenv("TMPDIR", str(tmp_path) + "/")
-    s = socket.socket(socket.AF_UNIX)
-    s.bind(str(tmp_path / "discord-ipc-0"))
-    try:
-        assert rpc.find_socket() == str(tmp_path / "discord-ipc-0")
-    finally:
-        s.close()
+    (tmp_path / "discord-ipc-0").touch()   # a plain file: macOS's long pytest paths don't fit a socket address
+    assert rpc.find_socket() == str(tmp_path / "discord-ipc-0")
 
 
 def test_sources_never_a_microphone():
