@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# your settings, Discord credentials, logs and downloaded models live outside the repo
+# (~/.config/dogmute, ~/.local/state/dogmute, ~/.cache/huggingface); never commit copies of them
+config.json
+discord.json
+*.jsonl
+*.log
+*.onnx
+*.bin

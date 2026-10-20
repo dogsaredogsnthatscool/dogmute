@@ -1,0 +1,86 @@
+/* DogMute look: the future as seen from 1997.
+   Win95 window chrome (navy title bars, bevelled buttons that press in, sunken fields), Oakley iridescence,
+   green LCD numbers, a still Giger ribbed wall behind. No animation runs at rest (it costs a repaint per frame). */
+@import url("https://fonts.googleapis.com/css2?family=VT323&display=swap");
+:root {
+  --bg: #07060a; --text: #e9ecf5; --dim: #9aa0b4; --line: #262635;
+  --face: #171822; --face2: #11121a; --field: #06070b;
+  --hi: #6d7386; --lo: #030306; --blt: #d9dde8; --bdk: #16171d;
+  --title: linear-gradient(90deg, #00106b, #0e7bd6 70%, #35d0ff);
+  --title-in: linear-gradient(90deg, #22242e, #4a4f60);
+  --btn: linear-gradient(#eef0f6, #b9bfcc); --btntxt: #000;
+  --iri: linear-gradient(100deg, #00f0ff, #7a3cff 25%, #ff2e88 50%, #ffcc00 75%, #00f0ff);
+  --hot: #ff2e88; --cyan: #35d0ff; --lcd: #7dffb3; --warn: #ffb02e; --acid: #b6ff3b;
+  --ui: Tahoma, Verdana, "Segoe UI", sans-serif; --pix: "VT323", "DejaVu Sans Mono", monospace;
+  --mono: "DejaVu Sans Mono", ui-monospace, monospace;
+  --panel: var(--face); --panel2: var(--face2);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 13px/1.35 var(--ui); }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background:
+  radial-gradient(90% 60% at 50% 115%, #3a230f55, transparent 70%),
+  repeating-radial-gradient(ellipse 140% 60% at 50% 150%, #0000 0 22px, #ffe9c808 23px 26px, #0000 27px 52px),
+  repeating-linear-gradient(90deg, #0000 0 70px, #16110c 72px 80px, #2b2117 81px 83px, #0000 85px 150px),
+  linear-gradient(#060509, #100a07 72%, #050507); }
+body::after { content: ""; position: fixed; inset: 0; z-index: 99; pointer-events: none; opacity: .18;
+  background: repeating-linear-gradient(#0000 0 2px, #0000001f 3px); }
+button, select, input, textarea { font: inherit; color: inherit; }
+a { color: var(--cyan); }
+
+/* the logo */
+.logo { font: 900 22px/1 var(--ui); letter-spacing: 1.5px; background: var(--iri); background-size: 300% 100%; -webkit-background-clip: text;
+  background-clip: text; color: transparent; filter: drop-shadow(0 1px 0 #000) drop-shadow(0 0 8px #7a3cff55); }
+.logo:hover { animation: iri 3s linear infinite; }
+.logo sup { font-size: 9px; vertical-align: 11px; }
+@keyframes iri { to { background-position: 300% 0; } }
+
+/* top bar: a chrome strip */
+.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 7px 12px; flex-wrap: wrap;
+  background: linear-gradient(#262834, #101118 55%, #0a0b10); border-bottom: 2px solid var(--lo); box-shadow: 0 1px 0 #7a3cff66, inset 0 1px 0 #ffffff22; }
+.top .grow { flex: 1; }
+
+/* windows */
+.win { background: var(--face); border: 2px solid; border-color: var(--blt) var(--bdk) var(--bdk) var(--blt);
+  box-shadow: inset 1px 1px 0 #ffffff33, inset -1px -1px 0 #3c4052, 0 10px 30px #0008; margin: 10px; }
+.win > .wt { display: flex; align-items: center; gap: 8px; padding: 3px 6px; background: var(--title); color: #fff; font: 700 12px var(--ui); letter-spacing: .4px; }
+.win > .wt .grow { flex: 1; }
+.win > .wt .hint-inline { color: #d8ecff; font-weight: 400; }
+.win > .wb { padding: 10px; }
+
+/* controls */
+.btn { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 12px; background: var(--btn); color: var(--btntxt);
+  border: 2px solid; border-color: #fff var(--bdk) var(--bdk) #fff; box-shadow: inset -1px -1px 0 var(--hi); font: 12px var(--ui); cursor: pointer; white-space: nowrap; }
+.btn:active, .btn.on { border-color: var(--bdk) #fff #fff var(--bdk); box-shadow: inset 1px 1px 0 var(--hi); }
+.btn.on { background: repeating-conic-gradient(#ffffff66 0 25%, transparent 0 50%) 0 0/2px 2px, var(--btn); }
+.btn:disabled { color: #777; cursor: default; }
+.btn.hot { background: var(--iri); background-size: 300% 100%; }
+.btn.hot:hover { animation: iri 3s linear infinite; }
+.btn.ghost { background: linear-gradient(#2c2e3b, #14151c); color: var(--text); border-color: #7c8296 #030306 #030306 #7c8296; box-shadow: inset 1px 1px 0 #ffffff18; }
+.btn.big { min-height: 38px; font-size: 15px; padding: 4px 18px; }
+input[type=text], input[type=password], input[type=number], input[type=search], select, textarea { background: var(--field); color: var(--lcd); border: 2px solid;
+  border-color: var(--lo) var(--hi) var(--hi) var(--lo); padding: 3px 6px; outline: 0; }
+select { color: var(--text); }
+input[type=range] { accent-color: #0e7bd6; }
+input[type=checkbox] { accent-color: #0e7bd6; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mini { display: inline-flex; align-items: center; gap: 5px; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.hint, .hint-inline { color: var(--dim); font-size: 12px; }
+.hint { margin: 8px 0 0; line-height: 1.45; }
+.lcd { font: 20px/1 var(--pix); color: var(--lcd); text-shadow: 0 0 6px #7dffb366; letter-spacing: 1px; }
+.lcd.hot { color: var(--hot); text-shadow: 0 0 6px #ff2e8866; }
+.sunk { background: #000; border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
+.count { font: 16px var(--pix); color: var(--lcd); }
+.ok { color: var(--acid); }
+.bad { color: var(--hot); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
+
+/* dialogs */
+dialog { background: var(--face); color: var(--text); border: 2px solid; border-color: var(--blt) var(--bdk) var(--bdk) var(--blt); padding: 0; }
+dialog::backdrop { background: #000a; }
+
+/* toast */
+#toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50; padding: 8px 14px; background: var(--face);
+  border: 2px solid; border-color: var(--blt) var(--bdk) var(--bdk) var(--blt); box-shadow: 0 8px 24px #000a; max-width: 90vw; }
+

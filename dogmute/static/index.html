@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DogMute</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="icon.png">
+<style>
+  body { max-width: 600px; margin: 0 auto; }
+  ::selection { background: #0e7bd6; color: #fff; }
+  :focus-visible { outline: 2px dotted var(--cyan); outline-offset: 2px; }
+  * { scrollbar-color: var(--hi) var(--face2); }
+  .top .logo { font-size: 20px; }
+  #status { font: 18px/1 var(--pix); letter-spacing: 1px; color: var(--lcd); text-shadow: 0 0 6px #7dffb355; }
+  #status.warn { color: var(--warn); text-shadow: 0 0 6px #ffb02e55; }
+  #status.bad { color: var(--hot); text-shadow: 0 0 6px #ff2e8855; }
+  .win > .wt .count { color: #fff; font-size: 15px; font-weight: 400; }
+  .win > .wb.flush { padding: 0; }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list > li { display: grid; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--line); }
+  .list > li:first-child { border-top: 0; }
+  .people > li { grid-template-columns: 10px 1fr auto auto auto; }
+  .lamp { width: 10px; height: 10px; border: 1px solid var(--lo); background: #1d2a22; box-shadow: inset 1px 1px 0 #0008; }
+  .lamp.on { background: var(--lcd); box-shadow: 0 0 6px var(--lcd); }
+  .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .who small { color: var(--dim); margin-left: 6px; }
+  .tag { font: 15px/1 var(--pix); letter-spacing: 1px; }
+  .tag.muted { color: var(--hot); }
+  .db { font: 16px/1 var(--pix); color: var(--dim); min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .icon { display: inline-grid; place-items: center; width: 30px; min-height: 26px; padding: 0; }
+  .icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+  .icon.on svg { fill: #ffcc00; stroke: #5a4300; }
+  .log > li { grid-template-columns: 5ch 1fr auto; align-items: start; }
+  .log time { font: 16px/1.2 var(--pix); color: var(--dim); font-variant-numeric: tabular-nums; }
+  .log .what { min-width: 0; }
+  .log .act { font: 15px/1 var(--pix); letter-spacing: 1px; margin-right: 6px; }
+  .act.muted { color: var(--hot); } .act.would { color: var(--warn); } .act.unmuted { color: var(--acid); }
+  .act.friend { color: var(--cyan); } .act.unclear, .act.failed { color: var(--dim); }
+  .log .why { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+  .log .btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .log li.fresh { animation: fresh 1.6s var(--ease, cubic-bezier(.16, 1, .3, 1)); }
+  @keyframes fresh { from { background: #ff2e8833; } to { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .log li.fresh { animation: none; } }
+  .empty { margin: 0; padding: 14px 10px; color: var(--dim); }
+  /* setup wizard */
+  .wz-lead { margin: 0 0 10px; color: var(--dim); }
+  ol.wz { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+  ol.wz > li { border-top: 1px solid var(--line); padding: 8px 0; }
+  ol.wz > li:first-child { border-top: 0; }
+  .wz-head { display: flex; align-items: center; gap: 10px; }
+  .wz-num { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; font: 18px/1 var(--pix); color: var(--dim);
+    background: var(--field); border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
+  .wz-title { font-weight: 700; color: var(--dim); }
+  .wz-body { display: none; padding: 6px 0 4px 36px; }
+  .wz-body p { margin: 0 0 8px; line-height: 1.5; max-width: 62ch; }
+  ol.wz-do { margin: 0 0 10px; padding-left: 18px; line-height: 1.6; max-width: 62ch; }
+  ol.wz-do li { margin-bottom: 4px; }
+  ol.wz-do .btn { min-height: 24px; }
+  a.btn { text-decoration: none; }
+  .mini-btn { min-height: 22px !important; padding: 0 8px; font-size: 11px; vertical-align: 1px; }
+  li.now .wz-num { color: var(--lcd); text-shadow: 0 0 6px #7dffb355; }
+  li.now .wz-title { color: var(--text); }
+  li.now .wz-body { display: block; }
+  li.done .wz-num { background: #0c2a17; color: var(--acid); }
+  li.done .wz-num svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: square; }
+  li.done .wz-title { color: var(--text); }
+  .wz-done-note { color: var(--acid); font-weight: 400; margin-left: 4px; font-size: 12px; }
+  .wz-err { padding: 8px 10px; border: 1px solid var(--hot); background: #ff2e8814; color: #ffd3e6; }
+  .wz-wait { color: var(--warn); font: 16px/1 var(--pix); letter-spacing: 1px; }
+  .wz-ok { color: var(--acid); }
+  #wzSrc { max-width: 100%; }
+  @media (max-width: 420px) { .wz-body { padding-left: 0; } }
+  ol.steps { margin: 0 0 12px; padding-left: 20px; line-height: 1.55; }
+  ol.steps code, .hint code { font: 15px var(--pix); color: var(--lcd); }
+  label.field { display: grid; gap: 3px; margin-bottom: 8px; }
+  label.field input { width: 100%; }
+  fieldset { border: 2px groove var(--hi); margin: 0 0 12px; padding: 4px 10px 8px; min-width: 0; }
+  legend { padding: 0 4px; font-weight: 700; }
+  .set { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); }
+  legend + .set { border-top: 0; }
+  .set label, label.set { display: block; font-weight: 700; }
+  .set small, label.set small { display: block; font-weight: 400; color: var(--dim); font-size: 12px; line-height: 1.4; margin-top: 2px; max-width: 52ch; }
+  label.set.wide { grid-template-columns: 1fr; }
+  .ctl { display: inline-flex; align-items: center; gap: 6px; justify-self: end; }
+  .ctl input[type=number] { width: 8ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .ctl i { font-style: normal; color: var(--dim); font-size: 12px; min-width: 3ch; }
+  .ctl input[type=checkbox] { width: 18px; height: 18px; margin: 0; }
+  .ctl .tick { color: var(--acid); font-size: 12px; } .ctl .err { color: var(--hot); font-size: 12px; max-width: 18ch; }
+  .set.bad input { border-color: var(--hot); }
+  .foot { margin-top: 6px; }
+  .ctl select { max-width: 22ch; }
+  .ctl input[type=text] { width: min(24ch, 40vw); }
+  .friends > li { grid-template-columns: 1fr auto; padding: 6px 0; }
+  .friends .empty { padding: 6px 0; }
+  textarea { width: 100%; min-height: 220px; font: 16px/1.2 var(--pix); resize: vertical; }
+  details > summary { cursor: pointer; list-style: none; }
+  details > .wb { padding: 10px; }
+  details > summary.wt { display: flex; gap: 8px; padding: 3px 6px; background: var(--title); color: #fff; font: 700 12px var(--ui); letter-spacing: .4px; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸ "; } details[open] > summary::before { content: "▾ "; }
+  .msg { margin-left: 4px; }
+  footer { margin: 4px 12px 16px; color: var(--dim); font-size: 12px; }
+  @media (max-width: 420px) { .people > li { grid-template-columns: 10px 1fr auto auto; } .db { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="logo">DOGMUTE</span>
+  <span id="status" class="grow" role="status">Starting…</span>
+  <button id="test" class="btn ghost" type="button" aria-pressed="false" title="Test mode: log what would be muted, mute nobody">Test mode</button>
+</header>
+
+<section id="wizard" class="win" hidden>
+  <div class="wt"><span class="grow">Set up DogMute</span><span class="count" id="wzCount"></span></div>
+  <div class="wb">
+    <p class="wz-lead">Five steps, about five minutes. Each one gets a tick when it works.</p>
+    <ol class="wz">
+      <li id="wz1">
+        <div class="wz-head"><span class="wz-num">1</span><span class="wz-title">Make a free Discord app</span></div>
+        <div class="wz-body">
+          <p>DogMute talks to the Discord app on this computer through an app of your own. You never give DogMute your password.</p>
+          <ol class="wz-do">
+            <li><a class="btn ghost" href="https://discord.com/developers/applications" target="_blank" rel="noopener">Open the Discord Developer Portal</a> and log in if it asks.</li>
+            <li>Click <b>New Application</b> (top right). Name it <b>DogMute</b>, tick the box, click <b>Create</b>.</li>
+            <li>In the menu on the left, click <b>OAuth2</b>.</li>
+            <li>Scroll to <b>Redirects</b>, click <b>Add Redirect</b> and paste <code>http://localhost</code>
+              <button class="btn ghost mini-btn" type="button" data-copy="http://localhost">Copy</button>.
+              Then click <b>Save Changes</b> in the bar at the bottom.</li>
+          </ol>
+          <div class="row"><button class="btn hot" type="button" id="wz1Next">I've made it</button></div>
+        </div>
+      </li>
+      <li id="wz2">
+        <div class="wz-head"><span class="wz-num">2</span><span class="wz-title">Copy its ID and secret here</span></div>
+        <div class="wz-body">
+          <p>Still on the <b>OAuth2</b> page:</p>
+          <ol class="wz-do">
+            <li>Under <b>Client ID</b>, click <b>Copy</b> and paste it below.</li>
+            <li>Under <b>Client Secret</b>, click <b>Reset Secret</b>, then <b>Yes, do it!</b>, then <b>Copy</b>, and paste it below.</li>
+          </ol>
+          <form id="wz2Form" autocomplete="off">
+            <label class="field"><span class="mini">Client ID</span><input id="cid" type="text" inputmode="numeric" spellcheck="false" placeholder="a long number" required></label>
+            <label class="field"><span class="mini">Client secret</span><input id="csec" type="password" spellcheck="false" placeholder="the code from Reset Secret" required></label>
+            <div class="row"><button class="btn hot" type="submit" id="wz2Go">Check with Discord</button><span class="wz-wait" id="wz2Wait" hidden>Checking…</span></div>
+          </form>
+          <p class="wz-err" id="wz2Err" role="alert" hidden></p>
+          <p class="hint">Saved only on this computer, in <code>~/.config/dogmute/discord.json</code>.</p>
+        </div>
+      </li>
+      <li id="wz3">
+        <div class="wz-head"><span class="wz-num">3</span><span class="wz-title">Click Authorize in Discord</span></div>
+        <div class="wz-body">
+          <p id="wz3Msg"></p>
+          <p class="wz-err" id="wz3Err" role="alert" hidden></p>
+          <div class="row" id="wz3Retry" hidden><button class="btn hot" type="button" id="wz3Go">Try again</button></div>
+        </div>
+      </li>
+      <li id="wz4">
+        <div class="wz-head"><span class="wz-num">4</span><span class="wz-title">Pick Discord's voice output</span></div>
+        <div class="wz-body">
+          <p id="wz4Msg"></p>
+          <div class="row"><label class="mini" for="wzSrc">Listen to</label><select id="wzSrc"></select></div>
+          <p class="hint">Only what you hear from the call. Never your microphone, and nothing is recorded.</p>
+        </div>
+      </li>
+      <li id="wz5">
+        <div class="wz-head"><span class="wz-num">5</span><span class="wz-title">Check that it hears the call</span></div>
+        <div class="wz-body">
+          <p id="wz5Msg">Join a voice call with someone, press <b>Start the check</b>, and ask them to say <b>“kangaroo”</b>. Nobody gets muted during the check.</p>
+          <div class="row">
+            <button class="btn hot" type="button" id="wz5Go">Start the check</button>
+            <button class="btn ghost" type="button" id="wzFinish">Finish setup</button>
+          </div>
+        </div>
+      </li>
+    </ol>
+    <div class="row foot"><span class="grow"></span><button class="btn ghost" type="button" id="wzSkip">Skip setup for now</button></div>
+  </div>
+</section>
+
+<section class="win">
+  <div class="wt"><span class="grow" id="chanTitle">In the call</span><span class="count" id="nPeople"></span></div>
+  <div class="wb flush"><ul class="list people" id="people"></ul></div>
+</section>
+
+<section class="win">
+  <div class="wt"><span class="grow">Mutes</span></div>
+  <div class="wb flush"><ul class="list log" id="log"></ul></div>
+</section>
+
+<section class="win">
+  <details id="settings">
+    <summary class="wt">Settings</summary>
+    <div class="wb">
+      <fieldset>
+        <legend>Muting</legend>
+        <div class="set"><label for="s-test">Test mode<small>Log who would get muted. Mutes nobody.</small></label>
+          <span class="ctl"><input id="s-test" type="checkbox" data-path="test_mode"></span></div>
+        <div class="set"><label for="s-auto">Auto-unmute after<small>0 keeps them muted until you press Unmute.</small></label>
+          <span class="ctl"><input id="s-auto" type="number" step="1" data-path="auto_unmute_min"><i>min</i></span></div>
+        <div class="set"><label for="s-bots">Leave bots alone<small>Never auto-mute bots. Music bots play nonstop on purpose.</small></label>
+          <span class="ctl"><input id="s-bots" type="checkbox" data-path="spare_bots"></span></div>
+        <div class="set"><label for="s-notify">Desktop pop-up<small>A notification each time someone gets muted.</small></label>
+          <span class="ctl"><input id="s-notify" type="checkbox" data-path="notify"></span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Words</legend>
+        <div class="set"><label for="s-words-on">Listen for words<small>Turn off to only watch for noise.</small></label>
+          <span class="ctl"><input id="s-words-on" type="checkbox" data-path="slurs.enabled"></span></div>
+        <div class="set"><label for="s-model">Speech model<small>distil-large-v3: the most accurate, needs the GPU (about 0.5 s a pass). tiny / base / small: smaller, for the CPU; tiny misses the most.</small></label>
+          <span class="ctl"><select id="s-model" data-path="stt.model"></select></span></div>
+        <div class="set"><label for="s-device">Run on<small>Auto uses the graphics card when there is one.</small></label>
+          <span class="ctl"><select id="s-device" data-path="stt.device"><option value="auto">auto</option><option value="gpu">graphics card</option><option value="cpu">CPU</option></select></span></div>
+        <div class="set"><label for="s-threads">CPU threads<small>More threads, faster passes, more CPU while people talk.</small></label>
+          <span class="ctl"><input id="s-threads" type="number" step="1" data-path="stt.threads"></span></div>
+        <div class="set"><label for="s-slack">Who-said-it window<small>How close to a word someone has to be talking to get blamed. Bigger catches more and blames the wrong person more.</small></label>
+          <span class="ctl"><input id="s-slack" type="number" step="0.1" data-path="slurs.slack_s"><i>s</i></span></div>
+        <div class="set"><label for="s-voice">Match voices<small>Learns how each person sounds when they talk alone, to tell who said a word when several mics are open. Kept in memory only, gone when DogMute stops.</small></label>
+          <span class="ctl"><input id="s-voice" type="checkbox" data-path="slurs.voice"></span></div>
+        <div class="set"><label for="s-openmic">Open mic after<small>Someone talking nonstop this long counts as background when someone else says a word.</small></label>
+          <span class="ctl"><input id="s-openmic" type="number" step="1" data-path="slurs.open_mic_s"><i>s</i></span></div>
+        <label class="set wide" for="words">Word list<small><code>word</code> also catches stretched spellings (wooord), leetspeak (w0rd) and plurals. <code>word*</code> catches anything starting with it. <code>/regex/</code> for anything else. <code>#</code> starts a comment.</small></label>
+        <textarea id="words" spellcheck="false"></textarea>
+        <div class="row foot"><button id="saveWords" class="btn" type="button">Save words</button><span id="wordsMsg" class="hint-inline msg"></span>
+          <span class="grow"></span><button class="btn ghost" type="button" data-reset="slurs">Reset word settings</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Noise and mic spam</legend>
+        <div class="set"><label for="s-noise-on">Watch for noise<small>Earrape, sudden blasts, nonstop music, mic on/off spam.</small></label>
+          <span class="ctl"><input id="s-noise-on" type="checkbox" data-path="spam.enabled"></span></div>
+        <div class="set"><label for="s-er">Earrape level<small>Average loudness that counts as earrape. 0 is the loudest possible; voices sit around −30 to −15. The numbers next to people in the call are their levels.</small></label>
+          <span class="ctl"><input id="s-er" type="number" step="1" data-path="spam.earrape_db"><i>dBFS</i></span></div>
+        <div class="set"><label for="s-erms">Earrape held for<small>How long it has to stay that loud.</small></label>
+          <span class="ctl"><input id="s-erms" type="number" step="50" data-path="spam.earrape_ms"><i>ms</i></span></div>
+        <div class="set"><label for="s-clip">Clipping<small>Share of maxed-out samples over half a second (only when it's also loud).</small></label>
+          <span class="ctl"><input id="s-clip" type="number" step="1" data-path="spam.clip_frac" data-scale="100"><i>%</i></span></div>
+        <div class="set"><label for="s-jump">Sudden blast<small>This much louder than their own normal voice.</small></label>
+          <span class="ctl"><input id="s-jump" type="number" step="1" data-path="spam.jump_db"><i>dB</i></span></div>
+        <div class="set"><label for="s-cont">Nonstop noise after<small>Mic open with no pause this long counts as music or noise…</small></label>
+          <span class="ctl"><input id="s-cont" type="number" step="1" data-path="spam.continuous_s"><i>s</i></span></div>
+        <div class="set"><label for="s-contdb">…when louder than<small>Quiet background music under this is left alone.</small></label>
+          <span class="ctl"><input id="s-contdb" type="number" step="1" data-path="spam.continuous_db"><i>dBFS</i></span></div>
+        <div class="set"><label for="s-dips">…and gaps under<small>Speech keeps dropping out between words; music and noise don't.</small></label>
+          <span class="ctl"><input id="s-dips" type="number" step="1" data-path="spam.continuous_dip_frac" data-scale="100"><i>%</i></span></div>
+        <div class="set"><label for="s-flaps">Mic on/off spam<small>Mic switching on this many times in 10 seconds.</small></label>
+          <span class="ctl"><input id="s-flaps" type="number" step="1" data-path="spam.flaps_per_10s"><i>/10 s</i></span></div>
+        <div class="row foot"><span class="grow"></span><button class="btn ghost" type="button" data-reset="spam">Reset noise limits</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Overlay hook</legend>
+        <div class="set"><label for="s-hk-on">Send mutes to an overlay<small>Each mute is POSTed as JSON (name, reason, clip) to the address below, for a stream overlay or a camera effect.</small></label>
+          <span class="ctl"><input id="s-hk-on" type="checkbox" data-path="hook.enabled"></span></div>
+        <div class="set"><label for="s-hk-url">Address<small>Full URL, like <code>http://127.0.0.1:8820/api/cmd</code>.</small></label>
+          <span class="ctl"><input id="s-hk-url" type="text" spellcheck="false" placeholder="http://…" data-path="hook.url"></span></div>
+        <div class="set"><label for="s-hk-dir">Clip folder<small>Videos the overlay can play. Leave empty if it doesn't play clips.</small></label>
+          <span class="ctl"><input id="s-hk-dir" type="text" spellcheck="false" placeholder="~/Videos/overlay" data-path="hook.clip_dir"></span></div>
+        <div class="set needs-dir"><label for="s-hk-clip">Clip<small>None: the overlay's own animation.</small></label>
+          <span class="ctl"><select id="s-hk-clip" data-path="hook.clip"></select></span></div>
+        <div class="set needs-dir"><label for="s-hk-key">Clip background<small>Green: green screen drops out. Black: black drops out. Full: the clip covers the picture.</small></label>
+          <span class="ctl"><select id="s-hk-key" data-path="hook.key"><option value="green">green screen</option><option value="screen">black</option><option value="full">full</option></select></span></div>
+        <div class="set needs-dir"><label for="s-hk-hit">Hitmarker at<small>Seconds into the clip. 0 = when it ends.</small></label>
+          <span class="ctl"><input id="s-hk-hit" type="number" step="0.1" data-path="hook.hit_at"><i>s</i></span></div>
+        <div class="set needs-dir"><label for="s-hk-pre">Clip name prefix<small>Put in front of the file name the overlay receives, if it wants a sub-folder.</small></label>
+          <span class="ctl"><input id="s-hk-pre" type="text" spellcheck="false" data-path="hook.clip_prefix"></span></div>
+        <div class="set needs-dir"><label for="s-hk-sync">After adding a clip, run<small>A command that copies the folder to the overlay's machine. <code>{dir}</code> is the clip folder. Leave empty if it's local.</small></label>
+          <span class="ctl"><input id="s-hk-sync" type="text" spellcheck="false" placeholder="rsync -a {dir}/ host:clips/" data-path="hook.sync_cmd"></span></div>
+        <div class="row foot">
+          <label class="btn ghost needs-dir" for="clipFile">Add a clip…</label><input id="clipFile" type="file" accept="video/*,.gif" hidden>
+          <span id="hkMsg" class="hint-inline msg"></span><span class="grow"></span>
+          <button id="hkTest" class="btn" type="button">Send a test</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Friends</legend>
+        <ul class="list friends" id="friends"></ul>
+      </fieldset>
+
+      <fieldset>
+        <legend>DogMute</legend>
+        <div class="set"><label for="s-port">Page port<small>This page's address. Takes effect after a restart.</small></label>
+          <span class="ctl"><input id="s-port" type="number" step="1" data-path="port"></span></div>
+        <div class="row foot"><button id="rerunSetup" class="btn ghost" type="button">Run setup again</button><span id="restartMsg" class="hint-inline msg"></span><span class="grow"></span><button id="restart" class="btn ghost" type="button">Restart DogMute</button></div>
+      </fieldset>
+    </div>
+  </details>
+</section>
+
+<footer id="foot"></footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const STAR = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6l1.9 4 4.3.5-3.2 2.9.9 4.3L8 11.1l-3.9 2.2.9-4.3L1.8 6.1l4.3-.5z"/></svg>';
+const ACT = { "muted": ["MUTED", "muted"], "would mute": ["WOULD MUTE", "would"], "unmuted": ["UNMUTED", "unmuted"],
+              "friend": ["FRIEND", "friend"], "unclear": ["UNCLEAR", "unclear"], "failed": ["FAILED", "failed"] };
+let last = "", seenLog = null, S = null;
+
+async function post(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+let srcList = "", srcAt = 0;
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private window: fine */ } } };
+
+function wizard(s) {
+  const w = s.setup, show = !w.done;
+  $("wizard").hidden = !show;
+  if (!show) return;
+  const done = [
+    w.has_creds || store.get("dm.step1") === "1",
+    w.has_creds && !(w.err && !w.authorized && /Client ID|secret/.test(w.err)),
+    w.connected,
+    w.connected && w.audio_ok,
+    !!w.test.heard,
+  ];
+  let now = done.findIndex((d) => !d); if (now < 0) now = 5;
+  done.forEach((d, i) => {
+    const li = $(`wz${i + 1}`);
+    li.className = d ? (i === 4 && now === 5 ? "done now" : "done") : i === now ? "now" : "";   // all done: keep step 5 open for Finish
+    li.querySelector(".wz-num").innerHTML = d ? CHECK : String(i + 1);
+  });
+  $("wzCount").textContent = `${done.filter(Boolean).length} / 5`;
+  // 3: Authorize
+  let m3 = "";
+  if (w.connected) m3 = `Connected as ${esc(s.me || "you")}.`;
+  else if (!w.discord_open) m3 = "Open the <b>Discord desktop app</b> and log in (Discord in a web browser can't do this). DogMute finds it within a few seconds.";
+  else if (w.authorizing) m3 = "Discord is showing a popup called <b>Authorize DogMute</b>: scroll down in it and click <b>Authorize</b>. Don't see it? Bring the Discord window to the front.";
+  else m3 = "Connecting to Discord…";
+  $("wz3Msg").innerHTML = m3;
+  $("wz3Err").hidden = !w.err || !w.has_creds; $("wz3Err").textContent = w.err;
+  $("wz3Retry").hidden = !w.err || !w.has_creds;
+  // 4: audio
+  $("wz4Msg").innerHTML = w.audio_ok ? `<span class="wz-ok">Hearing it.</span> Change it only if you use a different app for calls.`
+    : (s.audio === "waiting for Discord audio" ? "Join any voice channel in Discord, and its voice output shows up here." : esc(s.audio));
+  if (now === 3 && Date.now() - srcAt > 3000) loadSources();
+  // 5: test word
+  const t = w.test;
+  $("wz5Msg").innerHTML = t.heard ? `<span class="wz-ok">Heard “kangaroo” from ${esc(t.heard)}.</span> DogMute is working. Press Finish setup.`
+    : t.on ? "<b>Listening for “kangaroo”…</b> Ask someone in your call to say it clearly. Nobody gets muted during the check."
+    : "Join a voice call with someone, press <b>Start the check</b>, and ask them to say <b>“kangaroo”</b>. Nobody gets muted during the check.";
+  $("wz5Go").textContent = t.on ? "Stop the check" : t.heard ? "Check again" : "Start the check";
+  $("wz5Go").className = t.heard ? "btn ghost" : "btn hot";
+  $("wzSkip").hidden = now === 5;
+  $("wzFinish").className = t.heard ? "btn hot" : "btn ghost";
+  $("wzFinish").textContent = t.heard ? "Finish setup" : "Finish without the check";
+}
+
+async function loadSources() {
+  srcAt = Date.now();
+  try {
+    const a = await (await fetch("/api/audio")).json();
+    const opts = '<option value="">Discord voice output (automatic)</option>' + a.streams.filter((x) => !x.discord)
+      .map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join("");
+    if (opts !== srcList) { srcList = opts; $("wzSrc").innerHTML = opts; }
+    $("wzSrc").value = a.target;
+  } catch { /* the next tick tries again */ }
+}
+
+function statusLine(s) {
+  if (!s.setup.done) return ["Setting up", "warn"];
+  if (s.state === "setup") return ["Needs setup: connect Discord below", "bad"];
+  if (s.state === "authorize in Discord") return ["Click Authorize in Discord", "warn"];
+  if (s.state === "waiting for Discord") return ["Waiting for Discord to open", "warn"];
+  if (s.state.startsWith("error")) return [s.state, "bad"];
+  if (s.state !== "connected") return [s.state, "warn"];
+  if (s.test_mode) return [s.channel ? `Test mode · #${s.channel.name}` : "Test mode · not in a call", "warn"];
+  return [s.channel ? `Guarding #${s.channel.name}` : "On · not in a call", ""];
+}
+
+const setHTML = (id, html) => { if ($(id).dataset.html !== html) { $(id).innerHTML = html; $(id).dataset.html = html; } };   // untouched lists keep their DOM (and the scroll)
+
+function render(s) {
+  S = s;
+  const [txt, cls] = statusLine(s);
+  $("status").textContent = txt; $("status").className = "grow " + cls;
+  $("test").classList.toggle("on", s.test_mode); $("test").setAttribute("aria-pressed", s.test_mode);
+  wizard(s);
+  $("chanTitle").textContent = s.channel ? `In the call · #${s.channel.name}` : "In the call";
+  $("nPeople").textContent = s.channel ? s.people.length : "";
+  if ($("settings").open && JSON.stringify(s.friends) !== lastFriends) loadConfig();
+
+  const ppl = [...s.people].sort((a, b) => (b.talking - a.talking) || a.name.localeCompare(b.name));
+  setHTML("people", ppl.length ? ppl.map((p) => `
+    <li>
+      <span class="lamp${p.talking && !p.mute ? " on" : ""}" title="${p.talking ? "talking" : "quiet"}"></span>
+      <span class="who">${esc(p.name)}${p.bot ? "<small>bot</small>" : ""}${p.voice ? '<small title="DogMute knows their voice">voice known</small>' : ""}${p.mute ? ' <span class="tag muted">MUTED</span>' : ""}</span>
+      <span class="db" title="last level heard from them alone">${p.level != null ? Math.round(p.level) : ""}</span>
+      <button class="btn ghost icon${p.friend ? " on" : ""}" data-k="f${p.id}" data-friend="${p.id}" data-on="${p.friend ? 0 : 1}"
+        aria-pressed="${p.friend}" aria-label="${p.friend ? "Remove from friends" : "Friend: never auto-mute"} ${esc(p.name)}"
+        title="${p.friend ? "Friend: never auto-muted" : "Mark as friend (never auto-muted)"}">${STAR}</button>
+      <button class="btn${p.mute ? " hot" : " ghost"}" data-k="m${p.id}" data-${p.mute ? "unmute" : "mute"}="${p.id}">${p.mute ? "Unmute" : "Mute"}</button>
+    </li>`).join("")
+    : `<p class="empty">${s.state === "connected" ? "Join a voice channel in Discord and the people in it show up here." : "Not connected to Discord yet."}</p>`);
+
+  const muted = new Set(s.people.filter((p) => p.mute).map((p) => p.id));
+  const fresh = seenLog === null ? new Set() : new Set(s.log.filter((e) => !seenLog.has(e.t + e.user_id + e.action)).map((e) => e.t + e.user_id + e.action));
+  seenLog = new Set(s.log.map((e) => e.t + e.user_id + e.action));
+  setHTML("log", s.log.length ? s.log.map((e) => {
+    const [label, cls] = ACT[e.action] || [e.action.toUpperCase(), "unclear"];
+    let btns = "";
+    if (e.action === "muted" && muted.has(e.user_id)) btns = `<button class="btn hot" data-unmute="${e.user_id}">Unmute</button>`;
+    if (e.action === "unclear") btns = (e.candidates || []).filter((u) => !muted.has(u)).map((u) => {
+      const p = s.people.find((x) => x.id === u); return p ? `<button class="btn ghost" data-mute="${u}">Mute ${esc(p.name)}</button>` : "";
+    }).join("");
+    return `<li class="${fresh.has(e.t + e.user_id + e.action) ? "fresh" : ""}">
+      <time datetime="${esc(e.t)}" title="${esc(e.t.replace("T", " "))}">${esc(e.t.slice(11, 16))}</time>
+      <span class="what"><span class="act ${cls}">${label}</span>${esc(e.name)}<span class="why">${esc(e.reason)}</span></span>
+      <span class="btns">${btns}</span></li>`;
+  }).join("") : '<p class="empty">Nobody muted yet. Each mute lands here with the reason and an Unmute button.</p>');
+
+  $("foot").textContent = `Audio: ${s.audio} · Speech: ${s.stt}${s.stt_ms != null ? ` (${s.stt_ms} ms a pass)` : ""} · Voices: ${s.voices}${s.voices === "ready" ? ` (${s.voices_known} known)` : ""}${s.hook !== "off" ? ` · Overlay: ${s.hook}` : ""}${s.me ? ` · You: ${s.me}` : ""}`;
+}
+
+async function tick() {
+  try {
+    const r = await fetch("/api/state"); const t = await r.text();
+    if (t !== last) {
+      last = t;
+      const k = document.activeElement?.dataset?.k;
+      render(JSON.parse(t));
+      if (k) document.querySelector(`[data-k="${k}"]`)?.focus({ preventScroll: true });
+    }
+  } catch { $("status").textContent = "DogMute isn't running"; $("status").className = "grow bad"; }
+}
+
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  try {
+    if (b.dataset.unmute) await post("/api/unmute", { user_id: b.dataset.unmute });
+    else if (b.dataset.mute) await post("/api/mute", { user_id: b.dataset.mute });
+    else if (b.dataset.friend) await post("/api/friend", { user_id: b.dataset.friend, on: b.dataset.on === "1" });
+    else if (b.id === "test") { await post("/api/config", { path: "test_mode", value: !S?.test_mode }); if ($("settings").open) loadConfig(); }
+    else if (b.dataset.reset) { await post("/api/reset", { group: b.dataset.reset }); await loadConfig(); }
+    else if (b.dataset.unfriend) await post("/api/friend", { user_id: b.dataset.unfriend, on: false });
+    else if (b.id === "wz1Next") { store.set("dm.step1", "1"); last = ""; }
+    else if (b.dataset.copy) { await navigator.clipboard.writeText(b.dataset.copy).catch(() => {}); b.textContent = "Copied"; return; }
+    else if (b.id === "wz3Go") await post("/api/setup/retry", {});
+    else if (b.id === "wz5Go") await post("/api/setup/test", { on: !S?.setup.test.on });
+    else if (b.id === "wzFinish" || b.id === "wzSkip") await post("/api/setup/done", { done: true });
+    else if (b.id === "rerunSetup") { await post("/api/setup/done", { done: false }); window.scrollTo(0, 0); }
+    else if (b.id === "hkTest") { await post("/api/hook/test", { name: "Test" }); $("hkMsg").textContent = "Sent."; }
+    else if (b.id === "restart") { await post("/api/restart", {}); $("restartMsg").textContent = "Restarting…"; setTimeout(() => location.reload(), 4000); }
+    else return;
+    tick();
+  } catch (e) { $("status").textContent = `Didn't work: ${e.message}`; $("status").className = "grow bad"; }
+});
+let lastFriends = "";
+async function loadConfig() {
+  const c = await (await fetch("/api/config")).json();
+  for (const el of document.querySelectorAll(".needs-dir")) el.hidden = !c.cfg.hook.clip_dir;
+  $("s-hk-clip").innerHTML = '<option value="">none</option>' + c.clips.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+  $("s-model").innerHTML = c.models.map((m) => `<option value="${m}">${m.replace(".en", "")}</option>`).join("");
+  for (const el of document.querySelectorAll("[data-path]")) {
+    if (el === document.activeElement) continue;
+    const v = el.dataset.path.split(".").reduce((o, k) => o[k], c.cfg), sc = +el.dataset.scale || 1;
+    const lim = c.limits[el.dataset.path];
+    if (lim) { el.min = lim[0] * sc; el.max = lim[1] * sc; }
+    if (el.type === "checkbox") el.checked = v; else el.value = typeof v === "number" ? +(v * sc).toFixed(2) : v;
+  }
+  lastFriends = JSON.stringify(c.cfg.friends);
+  const f = Object.entries(c.cfg.friends);
+  $("friends").innerHTML = f.length ? f.map(([id, name]) => `<li><span class="who">${esc(name)}</span>
+    <button class="btn ghost" type="button" data-unfriend="${id}">Remove</button></li>`).join("")
+    : '<p class="empty">No friends yet. Press ★ next to someone in the call and they never get auto-muted.</p>';
+}
+document.addEventListener("change", async (ev) => {
+  const el = ev.target; if (!el.dataset.path) return;
+  const row = el.closest(".set"), ctl = el.closest(".ctl");
+  ctl.querySelector(".tick, .err")?.remove();
+  const sc = +el.dataset.scale || 1;
+  const value = el.type === "checkbox" ? el.checked : (el.tagName === "SELECT" || el.type === "text") ? el.value : (el.value === "" ? NaN : +el.value / sc);
+  const out = document.createElement("span");
+  try {
+    if (Number.isNaN(value)) throw new Error("needs a number");
+    if (el.type === "number" && (+el.value < +el.min || +el.value > +el.max)) throw new Error(`use ${el.min} to ${el.max}`);
+    await post("/api/config", { path: el.dataset.path, value });
+    row.classList.remove("bad"); out.className = "tick"; out.textContent = "Saved";
+    setTimeout(() => out.remove(), 1500); tick();
+  } catch (e) { row.classList.add("bad"); out.className = "err"; out.textContent = e.message; }
+  ctl.prepend(out);
+});
+$("wz2Form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  $("wz2Err").hidden = true; $("wz2Wait").hidden = false; $("wz2Go").disabled = true;
+  try { await post("/api/setup", { client_id: $("cid").value, client_secret: $("csec").value }); $("csec").value = ""; }
+  catch (e) { $("wz2Err").textContent = e.message; $("wz2Err").hidden = false; }
+  $("wz2Wait").hidden = true; $("wz2Go").disabled = false;
+  tick();
+});
+$("settings").addEventListener("toggle", async () => {
+  if ($("settings").open) loadConfig();
+  if ($("settings").open && !$("words").value) $("words").value = (await (await fetch("/api/words")).json()).text;
+});
+$("wzSrc").addEventListener("change", () => post("/api/config", { path: "audio.target", value: $("wzSrc").value }).then(tick));
+$("clipFile").addEventListener("change", async () => {
+  const f = $("clipFile").files[0]; if (!f) return;
+  $("hkMsg").textContent = `Adding ${f.name}…`;
+  try {
+    const r = await fetch(`/api/clip?name=${encodeURIComponent(f.name)}`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: f });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText);
+    $("hkMsg").textContent = j.synced === false ? `Saved, but the copy command failed: ${j.sync_err}` : `${j.clip} added.`;
+    await loadConfig();
+  } catch (e) { $("hkMsg").textContent = `Not added: ${e.message}`; }
+  $("clipFile").value = "";
+});
+$("saveWords").addEventListener("click", async () => {
+  try { await post("/api/words", { text: $("words").value }); $("wordsMsg").textContent = "Saved. Live now."; }
+  catch (e) { $("wordsMsg").textContent = `Not saved: ${e.message}`; }
+});
+tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>
