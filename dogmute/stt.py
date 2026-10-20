@@ -1,7 +1,12 @@
-"""Offline speech-to-text on the call mix (faster-whisper, CPU int8). Audio stays in memory; text is only
-checked against the word list and then dropped."""
+"""Offline speech-to-text on the call mix: faster-whisper (NVIDIA GPU or CPU int8), or mlx-whisper on an Apple Silicon
+Mac's GPU. Audio stays in memory; text is only checked against the word list and then dropped."""
+import importlib.util
+import platform
+import sys
 import threading
 import time
+
+import numpy as np
 
 from .audio import RATE
 from .words import WordList
@@ -10,6 +15,13 @@ TEST_LIST = WordList("kangaroo")   # the setup wizard's check word (core.TEST_WO
 
 WINDOW_S = 6.0   # look back this far each pass
 STEP_S = 1.0     # pass every this often while someone talks
+MLX_REPOS = {"tiny.en": "mlx-community/whisper-tiny.en-mlx", "base.en": "mlx-community/whisper-base.en-mlx",
+             "small.en": "mlx-community/whisper-small.en-mlx", "distil-large-v3": "mlx-community/distil-whisper-large-v3"}
+
+
+def apple_gpu():
+    """An Apple Silicon Mac with mlx-whisper installed (speech on its GPU through Metal)."""
+    return sys.platform == "darwin" and platform.machine() == "arm64" and importlib.util.find_spec("mlx_whisper") is not None
 
 
 class Listener(threading.Thread):
@@ -17,6 +29,7 @@ class Listener(threading.Thread):
         super().__init__(daemon=True)
         self.core = core
         self.model = None
+        self.mlx = None          # the mlx-whisper model repo when speech runs on an Apple GPU
         self.loaded = None
         self.latency_ms = None
         self.status = "loading speech model"
@@ -27,8 +40,18 @@ class Listener(threading.Thread):
         from faster_whisper import WhisperModel
         c = self.core.cfg["stt"]
         self.loaded = (c["model"], c["threads"], c["device"])
-        gpu = c["device"] == "gpu" or (c["device"] == "auto" and ctranslate2.get_cuda_device_count() > 0)
+        self.mlx = None
         self.status = f"loading {c['model']}"
+        if c["device"] != "cpu" and apple_gpu():
+            try:
+                self.mlx = MLX_REPOS[c["model"]]
+                self._mlx(np.zeros(RATE, np.float32))   # loads the model and warms up Metal, in this thread (MLX wants that)
+                self.status = f"ready ({c['model']}, Apple GPU)"
+                return
+            except Exception as e:  # noqa: BLE001
+                self.mlx = None
+                print("stt: Apple GPU failed, using the CPU:", e, flush=True)
+        gpu = c["device"] == "gpu" or (c["device"] == "auto" and ctranslate2.get_cuda_device_count() > 0)
         try:
             if gpu:
                 self.model = WhisperModel(c["model"], device="cuda", compute_type="int8_float16")
@@ -40,8 +63,17 @@ class Listener(threading.Thread):
         self.model = WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=c["threads"])
         self.status = f"ready ({name}, CPU)"
 
+    def _mlx(self, x):
+        import mlx_whisper
+        # verbose=None: mlx-whisper prints nothing (True would print what people said)
+        return mlx_whisper.transcribe(x, path_or_hf_repo=self.mlx, language="en", word_timestamps=True, temperature=0.0,
+                                      condition_on_previous_text=False, verbose=None)
+
     def transcribe(self, x, t0):
         """[(word, abs_start, abs_end)] for audio x that starts at monotonic time t0."""
+        if self.mlx:
+            return [(w["word"], t0 + w["start"], t0 + w["end"])
+                    for s in self._mlx(x)["segments"] for w in s.get("words") or []]
         segs, _ = self.model.transcribe(x, language="en", beam_size=1, word_timestamps=True,
                                         condition_on_previous_text=False, vad_filter=False)
         return [(w.word, t0 + w.start, t0 + w.end) for s in segs for w in (s.words or [])]

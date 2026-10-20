@@ -8,6 +8,7 @@ import json
 import os
 import queue
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -345,8 +346,13 @@ class Core:
             self.hook.hit(name, reason)
         if self.cfg["notify"] and action in ("muted", "would mute"):
             title = f"DogMute {'muted' if action == 'muted' else 'would mute'} {name}"
-            subprocess.Popen(["notify-send", "-a", "DogMute", "-i", "audio-volume-muted", title, reason],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cmd = (["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
+                    "-e", "end run", title, reason] if sys.platform == "darwin"
+                   else ["notify-send", "-a", "DogMute", "-i", "audio-volume-muted", title, reason])
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except OSError:
+                pass
 
     # ---------- Discord ----------
     def on_event(self, evt, d):
@@ -539,7 +545,8 @@ class Core:
                 "audio": self.capture.status, "stt": self.listener.status, "stt_ms": self.listener.latency_ms,
                 "voices": self.voices.status, "voices_known": sum(self.voices.known(u) for u in self.members),
                 "friends": self.cfg["friends"], "has_creds": bool(self.creds.get("client_id")), "setup": self.setup_view(),
-                "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off"}
+                "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off",
+                "platform": "mac" if sys.platform == "darwin" else "linux"}
 
     async def run(self):
         self.loop = asyncio.get_running_loop()

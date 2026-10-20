@@ -1,0 +1,2 @@
+# Apple Silicon Macs on macOS 14+: speech on the GPU (the installer adds this; without it speech runs on the CPU)
+mlx-whisper==0.4.3

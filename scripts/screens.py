@@ -37,6 +37,8 @@ SCENES = {
         "On your app's OAuth2 page copy the Client ID again, press Reset Secret for a fresh secret, and paste both.\"")},
     "setup-3": {"setup": setup(3), "h": 560, "js": "localStorage.setItem('dm.step1','1')"},
     "setup-4": {"setup": setup(4), "me": "you", "h": 560},
+    "setup-4-mac": {"setup": setup(4), "me": "you", "h": 760, "platform": "mac",
+                    "audio": "macOS needs your OK: allow Screen & System Audio Recording for Python"},
     "setup-5": {"setup": setup(6, test={"on": False, "heard": "Sam"}), "me": "you", "h": 520},
     "page": {"setup": setup(6, done=True), "me": "you", "people": PEOPLE, "log": LOG,
              "channel": {"id": "c", "name": "general", "guild_id": "g"}, "h": 520},
@@ -72,9 +74,9 @@ def serve():
             st = sc["setup"]
             return {"state": "connected" if st["connected"] else "authorize in Discord" if st["authorizing"] else "setup",
                     "me": sc.get("me"), "channel": sc.get("channel"), "people": sc.get("people", []), "log": sc.get("log", []),
-                    "test_mode": False, "auto_unmute_min": 0, "audio": "listening" if st["audio_ok"] else "waiting for Discord audio",
+                    "test_mode": False, "auto_unmute_min": 0, "audio": sc.get("audio", "listening" if st["audio_ok"] else "waiting for Discord audio"),
                     "stt": "ready (distil-large-v3, GPU)", "stt_ms": 452, "voices": "ready", "voices_known": 2,
-                    "friends": {"1": "Sam"}, "has_creds": st["has_creds"], "setup": st, "hook": "off"}
+                    "friends": {"1": "Sam"}, "has_creds": st["has_creds"], "setup": st, "hook": "off", "platform": sc.get("platform", "linux")}
 
     threading.Thread(target=Fake.loop.run_forever, daemon=True).start()
     start(Fake())

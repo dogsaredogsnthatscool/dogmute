@@ -1,5 +1,6 @@
 faster-whisper==1.2.1
 ctranslate2==4.8.3
-onnxruntime==1.31.0
+onnxruntime==1.31.0; sys_platform != "darwin"
+onnxruntime>=1.23.2,<=1.31.0; sys_platform == "darwin"   # newest that has a wheel for this Mac (macOS 13 / Intel stop at 1.23.2)
 huggingface_hub==2.2.0
 numpy==2.5.4

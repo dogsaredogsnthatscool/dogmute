@@ -162,6 +162,15 @@
           <p id="wz4Msg"></p>
           <div class="row"><label class="mini" for="wzSrc">Listen to</label><select id="wzSrc"></select></div>
           <p class="hint">Only what you hear from the call. Never your microphone, and nothing is recorded.</p>
+          <div id="wz4Mac" hidden>
+            <p class="hint">On a Mac, DogMute hears Discord through macOS's screen and audio capture. It keeps no picture and needs no driver.
+              The first time, macOS asks whether <b>Python</b> may record the screen and system audio. That's DogMute: turn it on.</p>
+            <p class="wz-err" id="wz4Perm" role="alert" hidden></p>
+            <div class="row" id="wz4Fix" hidden>
+              <button class="btn hot" type="button" id="wzPriv">Open System Settings</button>
+              <button class="btn ghost" type="button" id="wzRestart">Restart DogMute</button>
+            </div>
+          </div>
         </div>
       </li>
       <li id="wz5">
@@ -338,9 +347,15 @@ function wizard(s) {
   $("wz3Msg").innerHTML = m3;
   $("wz3Err").hidden = !w.err || !w.has_creds; $("wz3Err").textContent = w.err;
   $("wz3Retry").hidden = !w.err || !w.has_creds;
-  // 4: audio
+  // 4: audio (on a Mac, macOS has to allow the capture first)
+  const mac = s.platform === "mac", perm = mac && !w.audio_ok && s.audio.startsWith("macOS needs your OK");
   $("wz4Msg").innerHTML = w.audio_ok ? `<span class="wz-ok">Hearing it.</span> Change it only if you use a different app for calls.`
-    : (s.audio === "waiting for Discord audio" ? "Join any voice channel in Discord, and its voice output shows up here." : esc(s.audio));
+    : perm ? "" : (s.audio === "waiting for Discord audio" ? "Join any voice channel in Discord, and its voice output shows up here." : esc(s.audio));
+  $("wz4Mac").hidden = !mac;
+  $("wz4Perm").hidden = $("wz4Fix").hidden = !perm;
+  if (perm) $("wz4Perm").innerHTML = /Microphone/.test(s.audio)
+    ? "macOS hasn't let DogMute read the loopback device yet. Click <b>Open System Settings</b>, turn on <b>Python</b> under <b>Microphone</b>, then click <b>Restart DogMute</b>."
+    : "macOS hasn't let DogMute hear Discord yet. Click <b>Open System Settings</b>, turn on <b>Python</b> under <b>Screen &amp; System Audio Recording</b>, then click <b>Restart DogMute</b>.";
   if (now === 3 && Date.now() - srcAt > 3000) loadSources();
   // 5: test word
   const t = w.test;
@@ -444,6 +459,8 @@ document.addEventListener("click", async (ev) => {
     else if (b.id === "wz1Next") { store.set("dm.step1", "1"); last = ""; }
     else if (b.dataset.copy) { await navigator.clipboard.writeText(b.dataset.copy).catch(() => {}); b.textContent = "Copied"; return; }
     else if (b.id === "wz3Go") await post("/api/setup/retry", {});
+    else if (b.id === "wzPriv") await post("/api/privacy", { pane: /Microphone/.test(S?.audio || "") ? "microphone" : "screen" });
+    else if (b.id === "wzRestart") { await post("/api/restart", {}); b.textContent = "Restarting…"; setTimeout(() => location.reload(), 4000); }
     else if (b.id === "wz5Go") await post("/api/setup/test", { on: !S?.setup.test.on });
     else if (b.id === "wzFinish" || b.id === "wzSkip") await post("/api/setup/done", { done: true });
     else if (b.id === "rerunSetup") { await post("/api/setup/done", { done: false }); window.scrollTo(0, 0); }
