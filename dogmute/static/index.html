@@ -306,7 +306,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const STAR = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6l1.9 4 4.3.5-3.2 2.9.9 4.3L8 11.1l-3.9 2.2.9-4.3L1.8 6.1l4.3-.5z"/></svg>';
 const ACT = { "muted": ["MUTED", "muted"], "would mute": ["WOULD MUTE", "would"], "unmuted": ["UNMUTED", "unmuted"],
               "friend": ["FRIEND", "friend"], "unclear": ["UNCLEAR", "unclear"], "failed": ["FAILED", "failed"] };
-let last = "", seenLog = null, S = null;
+let last = "", seenLog = null, S = null, pageV = null;
 
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -440,6 +440,9 @@ async function tick() {
     const r = await fetch("/api/state"); const t = await r.text();
     if (t !== last) {
       last = t;
+      const v = JSON.parse(t).v;
+      if (pageV && v && v !== pageV) { location.reload(); return; }   // DogMute was updated: load the new page
+      pageV = pageV || v;
       const k = document.activeElement?.dataset?.k;
       render(JSON.parse(t));
       if (k) document.querySelector(`[data-k="${k}"]`)?.focus({ preventScroll: true });
