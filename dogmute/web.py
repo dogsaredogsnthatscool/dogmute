@@ -1,5 +1,6 @@
 """Tiny local page + JSON API on 127.0.0.1."""
 import asyncio
+import hashlib
 import json
 import os
 import subprocess
@@ -14,6 +15,8 @@ TYPES = {".html": "text/html; charset=utf-8", ".png": "image/png", ".css": "text
 
 def serve(core):
     loop = core.loop
+    # the page reloads itself when this changes, so a window left open across an update never runs old code
+    version = hashlib.sha1(b"".join(f.read_bytes() for f in sorted(STATIC.glob("*")) if f.is_file())).hexdigest()[:10]
 
     def run(coro):
         return asyncio.run_coroutine_threadsafe(coro, loop).result(10)
@@ -34,7 +37,7 @@ def serve(core):
         def do_GET(self):
             path = self.path.split("?")[0]
             if path == "/api/state":
-                return self._send(200, core.snapshot())
+                return self._send(200, {**core.snapshot(), "v": version})
             if path == "/api/words":
                 return self._send(200, {"text": core.words_path.read_text()})
             if path == "/api/audio":
