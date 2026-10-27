@@ -75,7 +75,7 @@ def serve():
             return {"state": "connected" if st["connected"] else "authorize in Discord" if st["authorizing"] else "setup",
                     "me": sc.get("me"), "channel": sc.get("channel"), "people": sc.get("people", []), "log": sc.get("log", []),
                     "test_mode": False, "auto_unmute_min": 0, "audio": sc.get("audio", "listening" if st["audio_ok"] else "waiting for Discord audio"),
-                    "stt": "ready (distil-large-v3, GPU)", "stt_ms": 452, "voices": "ready", "voices_known": 2,
+                    "stt": "ready (large-v3-turbo, GPU)", "stt_ms": 452, "voices": "ready", "voices_known": 2,
                     "friends": {"1": "Sam"}, "has_creds": st["has_creds"], "setup": st, "hook": "off", "platform": sc.get("platform", "linux")}
 
     threading.Thread(target=Fake.loop.run_forever, daemon=True).start()

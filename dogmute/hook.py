@@ -1,5 +1,6 @@
 """Overlay hook: each mute is POSTed as JSON to a URL you choose (a stream overlay, a bot, a camera effect...).
 
+hook.url may hold several URLs (space separated): each gets every POST.
 Payload: {"cmd": "killfeed", "event": "mute", "name", "by", "reason", "clip", "key", "hit_at"}
 clip / key / hit_at are hints for overlays that play a video: the clip's name (clip_prefix + file in clip_dir),
 how to key it (green / screen / full) and when the hit lands (seconds, 0 = clip end). Overlays may ignore them.
@@ -54,8 +55,8 @@ class Hook:
     def c(self):
         return self.core.cfg["hook"]
 
-    def _post(self, body):
-        req = urllib.request.Request(self.c["url"], data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    def _post(self, url, body):
+        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=2) as r:
                 r.read()
@@ -66,8 +67,9 @@ class Hook:
             self.status = "overlay not reachable"
 
     def _send(self, body):
-        if self.c["enabled"] and self.c["url"]:
-            threading.Thread(target=self._post, args=(body,), daemon=True).start()
+        if self.c["enabled"]:
+            for url in self.c["url"].split():
+                threading.Thread(target=self._post, args=(url, body), daemon=True).start()
 
     def clip_name(self):
         return (self.c.get("clip_prefix") or "") + self.c["clip"] if self.c["clip"] else ""

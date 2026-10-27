@@ -101,6 +101,63 @@
   details > summary::before { content: "▸ "; } details[open] > summary::before { content: "▾ "; }
   .msg { margin-left: 4px; }
   footer { margin: 4px 12px 16px; color: var(--dim); font-size: 12px; }
+  /* review queue */
+  .rv > li { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 4px; }
+  .rv .q { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; font-weight: 700; overflow-wrap: anywhere; }
+  .rv .q .tag { flex: none; }
+  .rv .tag.now { color: var(--warn); } .rv .tag.late { color: var(--dim); }
+  .rv .meta { color: var(--dim); font-size: 12px; }
+  .rv .meta time { font: 16px/1 var(--pix); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .rv .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .icon.play svg { fill: currentColor; stroke: none; }
+  .win-note { margin: 0; padding: 6px 10px 8px; border-top: 1px solid var(--line); }
+  /* rules */
+  .rl-lead { margin: 0 0 10px; max-width: 62ch; }
+  .rl-note { margin: 0 0 2px; }
+  .rules > li { grid-template-columns: 18px minmax(0, 1fr) auto 30px; grid-template-areas: "on main act del"; align-items: start; padding: 8px 0; }
+  .rules > li > .rl-on { grid-area: on; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #0e7bd6; }
+  .rules > li > .rl-main { grid-area: main; min-width: 0; }
+  .rules > li > .rl-act { grid-area: act; min-height: 24px; }
+  .rules > li > .rl-del { grid-area: del; }
+  .rules > li.off .rl-main > :not(.rl-gone) { opacity: .45; }
+  .rl-title { display: block; font-weight: 700; padding-top: 1px; }
+  input.rl-name { width: min(30ch, 100%); color: var(--text); font-weight: 700; }
+  .rl-help { display: block; color: var(--dim); font-size: 12px; line-height: 1.4; margin-top: 3px; max-width: 58ch; }
+  .rl-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 18px; margin-top: 8px; max-width: 460px; }
+  .rl-fields:empty { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; line-height: 1.25; }
+  .rl-fields .chip { justify-content: space-between; }
+  .chip input[type=number] { width: 9ch; flex: none; text-align: right; font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield; }
+  .chip input[type=number]::-webkit-inner-spin-button, .chip input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .chip input[type=number]::placeholder { color: var(--hi); }
+  .chip input[type=checkbox] { margin: 0; }
+  .chip i { font-style: normal; min-width: 5ch; }
+  .rl-fields .chip > span { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .chip.bad input { border-color: var(--hot); }
+  .rl-said { display: block; margin-top: 4px; font-size: 12px; }
+  .rl-said.err { color: var(--hot); } .rl-said.ok { color: var(--acid); }
+  .rl-box { max-height: 22rem; overflow: auto; background: var(--face2); border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); padding: 0 8px; }
+  .rules.words > li { grid-template-columns: 18px minmax(0, 1fr) auto auto 30px; grid-template-areas: "on main typo act del"; align-items: center; padding: 4px 0; }
+  .rules.words > li > .rl-typo { grid-area: typo; }
+  input.rl-text { width: 100%; font: 17px/1.05 var(--pix); letter-spacing: .5px; }
+  .rules.words > li.safe input.rl-text { color: var(--cyan); }
+  .rl-kind { font: 14px/1 var(--pix); letter-spacing: 1px; color: var(--cyan); margin-left: 6px; }
+  .rules.words .rl-said { grid-column: 2 / -1; margin: 0; }
+  .rl-tools { margin: 2px 0 6px; }
+  .rl-tools input[type=search] { width: min(26ch, 60%); }
+  .rl-add { margin-top: 10px; }
+  .rl-add label.field small { display: block; color: var(--dim); font-size: 12px; line-height: 1.4; margin: 2px 0 4px; max-width: 62ch; }
+  .rl-add textarea { min-height: 62px; }
+  .rl-addrow { margin-top: 8px; }
+  .rl-addrow select:empty, .rl-addrow select:empty + .btn { display: none; }
+  .rl-undo { display: flex; align-items: center; gap: 10px; margin: 4px 0 0; padding: 6px 8px; background: var(--field); border: 1px solid var(--line); }
+  .rl-empty { padding: 8px 0; color: var(--dim); }
+  @media (max-width: 460px) {
+    .rules > li { grid-template-columns: 18px minmax(0, 1fr) 30px; grid-template-areas: "on main del" ". act act"; }
+    .rules > li > .rl-act { justify-self: start; }
+    .rules.words > li { grid-template-columns: 18px minmax(0, 1fr) auto 30px; grid-template-areas: "on main main del" ". typo act act"; }
+    .rules.words > li > .rl-act { justify-self: end; }
+  }
   @media (max-width: 420px) { .people > li { grid-template-columns: 10px 1fr auto auto; } .db { display: none; } }
 </style>
 </head>
@@ -199,6 +256,57 @@
 </section>
 
 <section class="win">
+  <div class="wt"><span class="grow">Review</span><span class="count" id="nReview"></span></div>
+  <div class="wb flush"><ul class="list rv" id="review"></ul>
+    <p class="hint win-note" id="reviewNote" hidden>An answer mutes only while the pop-up is still up (<span id="rvSecs">30</span> s). After that it only saves your label for the training set.</p></div>
+</section>
+
+<section class="win">
+  <details id="rules">
+    <summary class="wt"><span class="grow">Rules</span><span class="count" id="nRules"></span></summary>
+    <div class="wb">
+      <p class="hint rl-lead">Every rule DogMute acts on. Changes are live: no Save, no restart. Turn one off to keep it for later,
+        delete it to drop it; deleted built-ins come back from Add or Restore.</p>
+      <fieldset class="rl-sec" data-sec="words">
+        <legend>Words <span class="count" id="nr-words"></span></legend>
+        <div class="row rl-tools"><input type="search" id="rlFind" placeholder="Find a word" aria-label="Find a word" spellcheck="false">
+          <span class="hint-inline" id="rlFound"></span></div>
+        <div class="rl-box"><ul class="list rules words" id="rs-words"></ul></div>
+        <form class="rl-add" id="rlAddWords">
+          <label class="field">Add words<small>One per line. <code>word</code> also catches stretched spellings (wooord), leetspeak (w0rd),
+            plurals and censoring (w**d). <code>word*</code> catches anything starting with it, a phrase matches its words in order,
+            <code>/regex/</code> is a regular expression.</small>
+            <textarea id="rlNewWords" rows="3" spellcheck="false"></textarea></label>
+          <div class="row"><select id="rlNewKind" aria-label="Kind"><option value="word">Words to catch</option><option value="safe">Safe phrases (never count)</option></select>
+            <button class="btn" type="submit">Add</button><span class="hint-inline msg" id="rlWordsMsg"></span></div>
+        </form>
+        <div class="row foot"><span class="grow"></span><button class="btn ghost" type="button" data-rreset="words">Add back the shipped words</button></div>
+      </fieldset>
+      <fieldset class="rl-sec" data-sec="noise">
+        <legend>Noise <span class="count" id="nr-noise"></span></legend>
+        <ul class="list rules" id="rs-noise"></ul>
+        <div class="row rl-addrow"><select id="rlAdd-noise" aria-label="Kind of noise rule"></select><button class="btn" type="button" data-radd="noise">Add rule</button>
+          <span class="grow"></span><button class="btn ghost" type="button" data-rreset="noise">Restore built-ins</button></div>
+      </fieldset>
+      <fieldset class="rl-sec" data-sec="who">
+        <legend>Who said it <span class="count" id="nr-who"></span></legend>
+        <p class="hint rl-note">Tried in this order until one decides.</p>
+        <ul class="list rules" id="rs-who"></ul>
+        <div class="row rl-addrow"><select id="rlAdd-who" aria-label="Rule to add back"></select><button class="btn" type="button" data-radd="who">Add back</button>
+          <span class="grow"></span><button class="btn ghost" type="button" data-rreset="who">Restore built-ins</button></div>
+      </fieldset>
+      <fieldset class="rl-sec" data-sec="count">
+        <legend>When a word counts <span class="count" id="nr-count"></span></legend>
+        <ul class="list rules" id="rs-count"></ul>
+        <div class="row rl-addrow"><select id="rlAdd-count" aria-label="Rule to add back"></select><button class="btn" type="button" data-radd="count">Add back</button>
+          <span class="grow"></span><button class="btn ghost" type="button" data-rreset="count">Restore built-ins</button></div>
+      </fieldset>
+      <p class="rl-undo" id="rlUndo" role="status" hidden></p>
+    </div>
+  </details>
+</section>
+
+<section class="win">
   <details id="settings">
     <summary class="wt">Settings</summary>
     <div class="wb">
@@ -218,45 +326,22 @@
         <legend>Words</legend>
         <div class="set"><label for="s-words-on">Listen for words<small>Turn off to only watch for noise.</small></label>
           <span class="ctl"><input id="s-words-on" type="checkbox" data-path="slurs.enabled"></span></div>
-        <div class="set"><label for="s-model">Speech model<small>distil-large-v3: the most accurate, needs the GPU (about 0.5 s a pass). tiny / base / small: smaller, for the CPU; tiny misses the most.</small></label>
+        <div class="set"><label for="s-model">Speech model<small>large-v3-turbo: the most accurate, needs the GPU (about 0.6 s a pass). tiny / base / small: smaller, for the CPU; tiny misses the most.</small></label>
           <span class="ctl"><select id="s-model" data-path="stt.model"></select></span></div>
         <div class="set"><label for="s-device">Run on<small>Auto uses the graphics card when there is one.</small></label>
           <span class="ctl"><select id="s-device" data-path="stt.device"><option value="auto">auto</option><option value="gpu">graphics card</option><option value="cpu">CPU</option></select></span></div>
         <div class="set"><label for="s-threads">CPU threads<small>More threads, faster passes, more CPU while people talk.</small></label>
           <span class="ctl"><input id="s-threads" type="number" step="1" data-path="stt.threads"></span></div>
-        <div class="set"><label for="s-slack">Who-said-it window<small>How close to a word someone has to be talking to get blamed. Bigger catches more and blames the wrong person more.</small></label>
-          <span class="ctl"><input id="s-slack" type="number" step="0.1" data-path="slurs.slack_s"><i>s</i></span></div>
-        <div class="set"><label for="s-voice">Match voices<small>Learns how each person sounds when they talk alone, to tell who said a word when several mics are open. Kept in memory only, gone when DogMute stops.</small></label>
-          <span class="ctl"><input id="s-voice" type="checkbox" data-path="slurs.voice"></span></div>
-        <div class="set"><label for="s-openmic">Open mic after<small>Someone talking nonstop this long counts as background when someone else says a word.</small></label>
-          <span class="ctl"><input id="s-openmic" type="number" step="1" data-path="slurs.open_mic_s"><i>s</i></span></div>
-        <label class="set wide" for="words">Word list<small><code>word</code> also catches stretched spellings (wooord), leetspeak (w0rd) and plurals. <code>word*</code> catches anything starting with it. <code>/regex/</code> for anything else. <code>#</code> starts a comment.</small></label>
-        <textarea id="words" spellcheck="false"></textarea>
-        <div class="row foot"><button id="saveWords" class="btn" type="button">Save words</button><span id="wordsMsg" class="hint-inline msg"></span>
-          <span class="grow"></span><button class="btn ghost" type="button" data-reset="slurs">Reset word settings</button></div>
+        <div class="row foot"><span class="hint-inline">The words, who gets blamed and when a word counts are in Rules.</span>
+          <span class="grow"></span><button class="btn ghost" type="button" data-open-rules>Open Rules</button></div>
       </fieldset>
 
       <fieldset>
         <legend>Noise and mic spam</legend>
         <div class="set"><label for="s-noise-on">Watch for noise<small>Earrape, sudden blasts, nonstop music, mic on/off spam.</small></label>
           <span class="ctl"><input id="s-noise-on" type="checkbox" data-path="spam.enabled"></span></div>
-        <div class="set"><label for="s-er">Earrape level<small>Average loudness that counts as earrape. 0 is the loudest possible; voices sit around −30 to −15. The numbers next to people in the call are their levels.</small></label>
-          <span class="ctl"><input id="s-er" type="number" step="1" data-path="spam.earrape_db"><i>dBFS</i></span></div>
-        <div class="set"><label for="s-erms">Earrape held for<small>How long it has to stay that loud.</small></label>
-          <span class="ctl"><input id="s-erms" type="number" step="50" data-path="spam.earrape_ms"><i>ms</i></span></div>
-        <div class="set"><label for="s-clip">Clipping<small>Share of maxed-out samples over half a second (only when it's also loud).</small></label>
-          <span class="ctl"><input id="s-clip" type="number" step="1" data-path="spam.clip_frac" data-scale="100"><i>%</i></span></div>
-        <div class="set"><label for="s-jump">Sudden blast<small>This much louder than their own normal voice.</small></label>
-          <span class="ctl"><input id="s-jump" type="number" step="1" data-path="spam.jump_db"><i>dB</i></span></div>
-        <div class="set"><label for="s-cont">Nonstop noise after<small>Mic open with no pause this long counts as music or noise…</small></label>
-          <span class="ctl"><input id="s-cont" type="number" step="1" data-path="spam.continuous_s"><i>s</i></span></div>
-        <div class="set"><label for="s-contdb">…when louder than<small>Quiet background music under this is left alone.</small></label>
-          <span class="ctl"><input id="s-contdb" type="number" step="1" data-path="spam.continuous_db"><i>dBFS</i></span></div>
-        <div class="set"><label for="s-dips">…and gaps under<small>Speech keeps dropping out between words; music and noise don't.</small></label>
-          <span class="ctl"><input id="s-dips" type="number" step="1" data-path="spam.continuous_dip_frac" data-scale="100"><i>%</i></span></div>
-        <div class="set"><label for="s-flaps">Mic on/off spam<small>Mic switching on this many times in 10 seconds.</small></label>
-          <span class="ctl"><input id="s-flaps" type="number" step="1" data-path="spam.flaps_per_10s"><i>/10 s</i></span></div>
-        <div class="row foot"><span class="grow"></span><button class="btn ghost" type="button" data-reset="spam">Reset noise limits</button></div>
+        <div class="row foot"><span class="hint-inline">Each noise rule and its numbers are in Rules.</span>
+          <span class="grow"></span><button class="btn ghost" type="button" data-open-rules>Open Rules</button></div>
       </fieldset>
 
       <fieldset>
@@ -284,6 +369,23 @@
       </fieldset>
 
       <fieldset>
+        <legend>Review queue</legend>
+        <div class="set"><label for="s-rv-on">Ask when unsure<small>A doubtful word, an unclear speaker or a near-miss goes to the Review list instead of muting. Every case is saved with your answer. Off: only sure hits mute, nothing is saved.</small></label>
+          <span class="ctl"><input id="s-rv-on" type="checkbox" data-path="review.enabled"></span></div>
+        <div class="set"><label for="s-rv-pop">Ask in a pop-up<small>Linux: buttons in the notification. Mac: the pop-up points here, answer in the list.</small></label>
+          <span class="ctl"><input id="s-rv-pop" type="checkbox" data-path="review.notify"></span></div>
+        <div class="set"><label for="s-rv-max">Pop-ups at most<small>More questions wait in the list.</small></label>
+          <span class="ctl"><input id="s-rv-max" type="number" step="1" data-path="review.max_per_min"><i>/min</i></span></div>
+        <div class="set"><label for="s-rv-to">A yes mutes for<small>This long after the question. Later answers only label.</small></label>
+          <span class="ctl"><input id="s-rv-to" type="number" step="5" data-path="review.ask_timeout_s"><i>s</i></span></div>
+        <div class="set"><label for="s-rv-clips">Save audio clips<small>About 3 s around each case, for training and evals. Clips hold other people's voices and stay on this computer, in DogMute's data folder. Off: text only.</small></label>
+          <span class="ctl"><input id="s-rv-clips" type="checkbox" data-path="review.clips"></span></div>
+        <div class="set"><label for="s-rv-days">Keep cases<small>Older cases and clips are deleted.</small></label>
+          <span class="ctl"><input id="s-rv-days" type="number" step="1" data-path="review.keep_days"><i>days</i></span></div>
+        <div class="row foot"><span class="grow"></span><button class="btn ghost" type="button" data-reset="review">Reset review settings</button></div>
+      </fieldset>
+
+      <fieldset>
         <legend>Friends</legend>
         <ul class="list friends" id="friends"></ul>
       </fieldset>
@@ -306,7 +408,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const STAR = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6l1.9 4 4.3.5-3.2 2.9.9 4.3L8 11.1l-3.9 2.2.9-4.3L1.8 6.1l4.3-.5z"/></svg>';
 const ACT = { "muted": ["MUTED", "muted"], "would mute": ["WOULD MUTE", "would"], "unmuted": ["UNMUTED", "unmuted"],
               "friend": ["FRIEND", "friend"], "unclear": ["UNCLEAR", "unclear"], "failed": ["FAILED", "failed"] };
-let last = "", seenLog = null, S = null, pageV = null;
+let clip = null, last = "", seenLog = null, S = null, pageV = null;
 
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -432,6 +534,19 @@ function render(s) {
       <span class="btns">${btns}</span></li>`;
   }).join("") : '<p class="empty">Nobody muted yet. Each mute lands here with the reason and an Unmute button.</p>');
 
+  const rv = s.review || { count: 0, items: [] };
+  $("nReview").textContent = rv.count || "";
+  $("reviewNote").hidden = !rv.items.length;
+  $("rvSecs").textContent = s.review_s || 30;
+  setHTML("review", rv.items.length ? rv.items.map((it) => {
+    const ans = it.kind === "who" ? [...it.candidates.map((c) => [c.uid, c.name]), ["wrong", "Nobody"]] : [["correct", "Correct"], ["wrong", "Wrong"]];
+    return `<li>
+      <span class="q"><span>${esc(it.question)}</span><span class="tag ${it.live ? "now" : "late"}">${it.live ? "MUTES" : "LABEL ONLY"}</span></span>
+      <span class="meta"><time datetime="${esc(it.t)}" title="${esc(it.t.replace("T", " "))}">${esc(it.t.slice(11, 16))}</time>${it.kind === "word" ? "word" : it.kind === "who" ? "who" : "mic spam"}${it.p != null ? ` · whisper ${Math.round(it.p * 100)}% sure` : ""}${it.clip ? "" : " · no clip"}</span>
+      <span class="btns">${it.clip ? `<button class="btn ghost icon play" type="button" data-k="p${it.id}" data-play="${it.id}" aria-label="Play the clip" title="Play the clip"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5l9 5.5-9 5.5z"/></svg></button>` : ""}${ans.map(([lab, txt]) =>
+        `<button class="btn${lab === "wrong" ? " ghost" : ""}" type="button" data-k="a${it.id}${lab}" data-rv="${it.id}" data-lab="${esc(lab)}">${esc(txt)}</button>`).join("")}</span></li>`;
+  }).join("") : '<p class="empty">Nothing to review. When DogMute is unsure it asks here and in a pop-up, and your answers become labelled examples.</p>');
+
   $("foot").textContent = `Audio: ${s.audio} · Speech: ${s.stt}${s.stt_ms != null ? ` (${s.stt_ms} ms a pass)` : ""} · Voices: ${s.voices}${s.voices === "ready" ? ` (${s.voices_known} known)` : ""}${s.hook !== "off" ? ` · Overlay: ${s.hook}` : ""}${s.me ? ` · You: ${s.me}` : ""}`;
 }
 
@@ -453,7 +568,9 @@ async function tick() {
 document.addEventListener("click", async (ev) => {
   const b = ev.target.closest("button"); if (!b) return;
   try {
-    if (b.dataset.unmute) await post("/api/unmute", { user_id: b.dataset.unmute });
+    if (b.dataset.play) { clip?.pause(); clip = new Audio(`/api/review/clip?id=${encodeURIComponent(b.dataset.play)}`); await clip.play(); return; }
+    else if (b.dataset.rv) await post("/api/review/label", { id: b.dataset.rv, label: b.dataset.lab });
+    else if (b.dataset.unmute) await post("/api/unmute", { user_id: b.dataset.unmute });
     else if (b.dataset.mute) await post("/api/mute", { user_id: b.dataset.mute });
     else if (b.dataset.friend) await post("/api/friend", { user_id: b.dataset.friend, on: b.dataset.on === "1" });
     else if (b.id === "test") { await post("/api/config", { path: "test_mode", value: !S?.test_mode }); if ($("settings").open) loadConfig(); }
@@ -516,10 +633,7 @@ $("wz2Form").addEventListener("submit", async (ev) => {
   $("wz2Wait").hidden = true; $("wz2Go").disabled = false;
   tick();
 });
-$("settings").addEventListener("toggle", async () => {
-  if ($("settings").open) loadConfig();
-  if ($("settings").open && !$("words").value) $("words").value = (await (await fetch("/api/words")).json()).text;
-});
+$("settings").addEventListener("toggle", () => { if ($("settings").open) loadConfig(); });
 $("wzSrc").addEventListener("change", () => post("/api/config", { path: "audio.target", value: $("wzSrc").value }).then(tick));
 $("clipFile").addEventListener("change", async () => {
   const f = $("clipFile").files[0]; if (!f) return;
@@ -532,9 +646,112 @@ $("clipFile").addEventListener("change", async () => {
   } catch (e) { $("hkMsg").textContent = `Not added: ${e.message}`; }
   $("clipFile").value = "";
 });
-$("saveWords").addEventListener("click", async () => {
-  try { await post("/api/words", { text: $("words").value }); $("wordsMsg").textContent = "Saved. Live now."; }
-  catch (e) { $("wordsMsg").textContent = `Not saved: ${e.message}`; }
+// ---------- rules ----------
+const TRASH = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M6 4.5V2.8h4v1.7M4 4.5l.8 8.7h6.4l.8-8.7M6.7 7v4.3M9.3 7v4.3"/></svg>';
+const ACTS = { mute: "Mute", ask: "Ask me", log: "Only log" };
+let R = null, undo = null;
+const pct = (f) => f.unit === "%";
+const shown = (v, f) => (v === null || v === undefined) ? "" : pct(f) ? +(v * 100).toFixed(1) : v;
+function ruleField(r, k, f) {
+  const at = `data-rid="${r.id}" data-f="${k}"`;
+  if (f.kind === "bool") return `<label class="chip"><input type="checkbox" ${at} ${r[k] ? "checked" : ""}>${esc(f.label)}</label>`;
+  const sc = pct(f) ? 100 : 1, step = f.unit === "ms" ? 50 : f.kind === "int" || pct(f) || /dB/.test(f.unit) ? 1 : f.unit === "s" ? 0.1 : 0.01;
+  return `<label class="chip">${esc(f.label)}<span><input type="number" ${at} data-scale="${sc}" step="${step}" min="${+(f.min * sc).toFixed(3)}"
+    max="${+(f.max * sc).toFixed(3)}" value="${shown(r[k], f)}"${f.blank ? ' placeholder="off"' : ""}><i>${esc(f.unit)}</i></span></label>`;
+}
+function ruleRow(r) {
+  const t = R.types[r.type], wordy = t.section === "words";
+  const on = `<input type="checkbox" class="rl-on" data-rid="${r.id}" data-f="on" ${r.on ? "checked" : ""} aria-label="${r.on ? "On" : "Off"}: ${esc(r.text || r.name)}">`;
+  const act = t.actions.length ? `<select class="rl-act" data-rid="${r.id}" data-f="action" aria-label="What it does">${t.actions.map((a) =>
+    `<option value="${a}"${r.action === a ? " selected" : ""}>${ACTS[a]}</option>`).join("")}</select>` : (wordy ? "<span></span>" : "");
+  const del = `<button class="btn ghost icon rl-del" type="button" data-rdel="${r.id}" aria-label="Delete ${esc(r.text || r.name)}" title="Delete">${TRASH}</button>`;
+  if (wordy) {
+    const typo = r.type === "word" ? `<label class="chip rl-typo" title="Also catch it with one letter wrong (long words only)"><input type="checkbox"
+      data-rid="${r.id}" data-f="fuzzy" ${r.fuzzy ? "checked" : ""}>typos</label>` : `<span class="rl-typo rl-kind">SAFE</span>`;
+    return `<li class="${r.type}${r.on ? "" : " off"}" data-k="r-${r.id}" data-text="${esc((r.text || "").toLowerCase())}">${on}
+      <div class="rl-main"><input type="text" class="rl-text" data-rid="${r.id}" data-f="text" value="${esc(r.text)}" spellcheck="false"
+        aria-label="${esc(t.label)}"></div>${typo}${act}${del}</li>`;
+  }
+  const head = t.many ? `<input type="text" class="rl-name" data-rid="${r.id}" data-f="name" value="${esc(r.name)}" aria-label="Rule name">`
+    : `<span class="rl-title">${esc(r.name)}</span>`;
+  const fields = Object.entries(t.fields).map(([k, f]) => ruleField(r, k, f)).join("");
+  return `<li class="${r.on ? "" : "off"}" data-k="r-${r.id}">${on}<div class="rl-main">${head}<small class="rl-help">${esc(t.help)}</small>
+    <div class="rl-fields">${fields}</div></div>${act}${del}</li>`;
+}
+function drawRules() {
+  if (!R) return;
+  const k = document.activeElement?.dataset?.rid ? `${document.activeElement.dataset.rid}:${document.activeElement.dataset.f}` : null;
+  for (const sec of Object.keys(R.sections)) {
+    const rs = R.rules.filter((r) => R.types[r.type].section === sec);
+    setHTML(`rs-${sec}`, rs.length ? rs.map(ruleRow).join("") : `<li class="rl-empty">No ${esc(R.sections[sec].toLowerCase())} rules. Add one below.</li>`);
+    const on = rs.filter((r) => r.on).length;
+    $(`nr-${sec}`).textContent = on === rs.length ? `${rs.length}` : `${on} of ${rs.length} on`;
+    const sel = $(`rlAdd-${sec}`);
+    if (sel) {
+      const kinds = sec === "noise" ? Object.keys(R.types).filter((t) => R.types[t].section === "noise") : R.missing.filter((t) => R.types[t].section === sec);
+      const html = kinds.map((t) => `<option value="${t}">${esc(R.types[t].label)}</option>`).join("");
+      if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
+    }
+  }
+  $("nRules").textContent = R.rules.filter((r) => r.on).length;
+  findWords();
+  if (k) document.querySelector(`[data-rid="${k.split(":")[0]}"][data-f="${k.split(":")[1]}"]`)?.focus({ preventScroll: true });
+}
+function findWords() {
+  const q = $("rlFind").value.trim().toLowerCase(); let n = 0;
+  for (const li of $("rs-words").children) { const hit = !q || (li.dataset.text || "").includes(q); li.hidden = !hit; n += hit; }
+  $("rlFound").textContent = q ? `${n} found` : "";
+}
+async function loadRules() { R = await (await fetch("/api/rules")).json(); drawRules(); }
+async function rulesOp(body) { R = await post("/api/rules", body); drawRules(); }
+function said(row, cls, text) {
+  row.querySelector(".rl-said")?.remove();
+  const m = document.createElement("small"); m.className = `rl-said ${cls}`; m.textContent = text;
+  (row.querySelector(".rl-main") || row).append(m);
+  if (cls === "ok") setTimeout(() => m.remove(), 1400);
+}
+$("rules").addEventListener("toggle", () => { if ($("rules").open) loadRules(); });
+$("rlFind").addEventListener("input", findWords);
+$("rules").addEventListener("change", async (ev) => {
+  const el = ev.target, id = el.dataset.rid, f = el.dataset.f; if (!id || !f) return;
+  const row = el.closest("li"), chip = el.closest(".chip");
+  let v = el.type === "checkbox" ? el.checked : el.value;
+  if (el.type === "number") v = el.value === "" ? null : +el.value / (+el.dataset.scale || 1);
+  try {
+    await rulesOp({ op: "update", id, [f]: v });
+    said(document.querySelector(`[data-k="r-${id}"]`) || row, "ok", "Saved");
+  } catch (e) { chip?.classList.add("bad"); said(row, "err", e.message); }
+});
+$("rlAddWords").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const text = $("rlNewWords").value; if (!text.trim()) return;
+  try {
+    const kind = $("rlNewKind").value, n = text.split("\n").filter((x) => x.trim()).length;
+    await rulesOp({ op: "add", type: kind, text, fuzzy: true, action: "mute" });
+    $("rlNewWords").value = ""; $("rlWordsMsg").textContent = `Added ${n}. Live now.`;
+  } catch (e) { $("rlWordsMsg").textContent = `Not added: ${e.message}`; }
+});
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  try {
+    if (b.dataset.openRules !== undefined) { $("rules").open = true; $("rules").scrollIntoView({ block: "start" }); }
+    else if (b.dataset.rdel) {
+      const r = R.rules.find((x) => x.id === b.dataset.rdel), sec = b.closest("fieldset");
+      await rulesOp({ op: "delete", id: b.dataset.rdel });
+      sec.querySelector(".rl-addrow, .rl-add")?.before($("rlUndo"));   // right under the list it left
+      undo = r; $("rlUndo").innerHTML = `<span class="grow">Deleted ${esc(r.text || r.name)}.</span><button class="btn ghost" type="button" data-rundo>Undo</button>`;
+      $("rlUndo").hidden = false;
+    }
+    else if (b.dataset.rundo !== undefined && undo) {
+      const { id, ...back } = undo; await rulesOp({ op: "add", ...back }); undo = null; $("rlUndo").hidden = true;
+    }
+    else if (b.dataset.radd) {
+      const t = $(`rlAdd-${b.dataset.radd}`).value; if (!t) return;
+      await rulesOp({ op: "add", type: t });
+      if (R.types[t].many) { const r = R.rules.filter((x) => x.type === t).pop(); document.querySelector(`[data-rid="${r.id}"][data-f="name"]`)?.select(); }
+    }
+    else if (b.dataset.rreset) await rulesOp({ op: "reset", section: b.dataset.rreset });
+  } catch (e) { $("rlUndo").textContent = `Didn't work: ${e.message}`; $("rlUndo").hidden = false; }
 });
 tick(); setInterval(tick, 1000);
 </script>

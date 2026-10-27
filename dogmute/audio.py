@@ -12,6 +12,7 @@ import numpy as np
 
 RATE = 16000
 BLOCK = 320  # 20 ms
+GAP_S = 0.2  # a block this much later than the clock says = the stream stalled (blocks arrive within ~20 ms otherwise)
 MAC = sys.platform == "darwin"
 HELPER = Path(os.environ.get("DOGMUTE_LISTEN", Path(__file__).resolve().parent.parent / "bin" / "dogmute-listen"))
 DISCORD_BUNDLE = "com.hnc.Discord"           # a prefix: also PTB, Canary and Discord's helper processes
@@ -118,18 +119,32 @@ class Ring:
         self.last_push = -99.0
         self.lock = threading.Lock()
 
+    def _put(self, x):
+        n, N = len(x), len(self.buf)
+        i = self.total % N
+        k = min(n, N - i)
+        self.buf[i:i + k] = x[:k]
+        self.buf[:n - k] = x[k:]
+        self.total += n
+
     def push(self, x, now):
+        # Discord's stream carries the odd NaN; one would blank whisper's whole window and the loudness rules with it
+        x = np.nan_to_num(x, nan=0.0, posinf=1.0, neginf=-1.0)
         with self.lock:
-            n, N = len(x), len(self.buf)
-            i = self.total % N
-            k = min(n, N - i)
-            self.buf[i:i + k] = x[:k]
-            self.buf[:n - k] = x[k:]
-            self.total += n
+            if self.offset is not None:
+                gap = now - self.offset - (self.total + len(x)) / RATE
+                if gap > GAP_S:       # the stream stalled: silence in its place, so every sample keeps its real time
+                    n = int(gap * RATE)
+                    if n >= len(self.buf):
+                        self.buf[:] = 0
+                        self.total += n
+                    else:
+                        self._put(np.zeros(n, np.float32))
+            self._put(x)
             self.last_push = now
             est = now - self.total / RATE
             # take the earliest arrival seen; drift slowly so clock skew can't pin it forever
-            if self.offset is None or est < self.offset or est - self.offset > 0.5:  # first block, earlier, or a gap
+            if self.offset is None or est < self.offset:
                 self.offset = est
             else:
                 self.offset += 0.0005 * (est - self.offset)

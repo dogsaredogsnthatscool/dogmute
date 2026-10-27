@@ -111,7 +111,10 @@ class RPC:
     async def connect(self, path):
         self.reader, self.writer = await asyncio.open_unix_connection(path)
         self._send(OP_HANDSHAKE, {"v": 1, "client_id": self.client_id})
-        op, msg = await self._read()
+        try:
+            op, msg = await asyncio.wait_for(self._read(), 10)
+        except asyncio.TimeoutError:   # its socket takes the connection and never answers (a hung Discord): try again later
+            raise RPCError(0, "Discord isn't answering. Quit and reopen the Discord app.") from None
         if op == OP_CLOSE:
             raise RPCError(msg.get("code"), msg.get("message"))
         if msg.get("evt") != "READY":

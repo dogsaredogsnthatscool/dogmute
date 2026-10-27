@@ -31,9 +31,12 @@ def say(text, voice="en"):
 
 @pytest.fixture(scope="module")
 def setup():
+    from dogmute.core import CONF
+    (CONF / "rules.json").unlink(missing_ok=True)
     core = Core()
-    core.words = WordList("kangaroo")
+    core.book.add({"type": "word", "text": "kangaroo"})   # the words come from the rulebook
     core.me = {"id": "me"}
+    core.cfg["review"]["enabled"] = False       # the review queue has its own tests (and would pop notifications)
     acts = []
     core.act = lambda uid, why, kind: acts.append((uid, why))
     lis = Listener(core)
@@ -47,9 +50,9 @@ def setup():
 
 
 def pass_over(core, lis, T, dur):
-    lis.recent.clear()
+    lis.votes.clear()
     t = time.monotonic()
-    for e, a, b in lis.check(*core.ring.get(T, T + dur + 2)):
+    for e, a, b, _, _ in lis.check(*core.ring.get(T, T + dur + 2), last=True):
         core.heard(e, a, b)
     return time.monotonic() - t
 
@@ -64,12 +67,17 @@ def test_one_speaker_gets_muted(setup):
     print(f"pass took {dt * 1000:.0f} ms")
 
 
-def test_two_talking_is_unclear(setup):
+def test_two_talking_and_no_telling_mutes_both(setup):
     core, lis, acts, T, dur = setup
     core.talk = {"A": [(T + 0.9, T + 1 + dur)], "B": [(T + 0.5, T + 1 + dur)]}
     core.cfg["slurs"]["voice"] = False
     acts.clear()
     pass_over(core, lis, T, dur)
+    assert sorted(u for u, _ in acts) == ["A", "B"]
+    core.book.update("who_unclear", {"action": "ask"})
+    acts.clear()
+    pass_over(core, lis, T, dur)
+    core.book.update("who_unclear", {"action": "mute"})
     assert acts == []
     assert core.log[-1]["action"] == "unclear" and set(core.log[-1]["candidates"]) == {"A", "B"}
 
