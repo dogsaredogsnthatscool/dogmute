@@ -38,8 +38,12 @@ def serve(core):
             path = self.path.split("?")[0]
             if path == "/api/state":
                 return self._send(200, {**core.snapshot(), "v": version})
-            if path == "/api/words":
-                return self._send(200, {"text": core.words_path.read_text()})
+            if path == "/api/review/clip":
+                from urllib.parse import parse_qs, urlparse
+                f = core.review.clip_path(parse_qs(urlparse(self.path).query).get("id", [""])[0])
+                return self._send(200, f.read_bytes(), "audio/wav") if f else self._send(404, {"error": "no clip"})
+            if path == "/api/rules":
+                return self._send(200, core.book.view())
             if path == "/api/audio":
                 from .audio import streams
                 return self._send(200, {"streams": [{k: s[k] for k in ("key", "label", "discord")} for s in streams()],
@@ -93,6 +97,10 @@ def serve(core):
             elif path == "/api/mute":
                 run(core.set_mute(uid, True))
                 core.add_log("muted", uid, core.name(uid), "by you")
+            elif path == "/api/deafen":   # your own mute + deafen, toggled (for a hardware or stream-deck button): {"deaf": now}
+                return {"deaf": run(core.toggle_deafen())}
+            elif path == "/api/selfmute":   # your own mic muted or not (for another app or button): {"was": muted before}
+                return {"was": run(core.set_self_mute(bool(d.get("mute", True))))}
             elif path == "/api/friend":
                 if d.get("on"):
                     core.cfg["friends"][uid] = core.name(uid)
@@ -110,8 +118,23 @@ def serve(core):
             elif path == "/api/privacy" and sys.platform == "darwin":   # macOS: the Privacy & Security page to allow capture
                 pane = "Privacy_Microphone" if d.get("pane") == "microphone" else "Privacy_ScreenCapture"
                 subprocess.Popen(["open", f"x-apple.systempreferences:com.apple.preference.security?{pane}"])
-            elif path == "/api/words":
-                core.set_words(d["text"])
+            elif path == "/api/review/label":
+                return {"new": core.review.label(str(d.get("id")), d.get("label"), "page")}
+            elif path == "/api/rules":   # {"op": "add", "type", fields} | update {"id", fields} | delete {"id"} | reset {"section"}
+                op, bk = d.get("op"), core.book
+                if op == "add":
+                    texts = [t for t in str(d.get("text", "")).splitlines() if t.strip()] if d.get("type") in ("word", "safe") else [None]
+                    for t in texts or [""]:                    # several lines pasted: one word rule each
+                        bk.add({**d, **({"text": t} if t is not None else {})})
+                elif op == "update":
+                    bk.update(str(d.get("id")), d)
+                elif op == "delete":
+                    bk.delete(str(d.get("id")))
+                elif op == "reset":
+                    bk.reset(str(d.get("section")))
+                else:
+                    raise ValueError("op is add, update, delete or reset")
+                return bk.view()
             elif path == "/api/setup":
                 cid, sec = str(d.get("client_id", "")).strip(), str(d.get("client_secret", "")).strip()
                 if not cid.isdigit() or not 15 <= len(cid) <= 22:

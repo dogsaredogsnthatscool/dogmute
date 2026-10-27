@@ -51,13 +51,34 @@ def test_page_and_state():
 
 
 def test_settings_roundtrip_and_validation():
-    assert post("/api/config", {"path": "spam.earrape_db", "value": -5})[1]["value"] == -5.0
-    assert CORE.rules.cfg["earrape_db"] == -5.0                     # live, no restart
-    assert post("/api/config", {"path": "spam.earrape_db", "value": 5})[0] == 400
+    assert post("/api/config", {"path": "spam.enabled", "value": False})[1]["value"] is False
+    assert CORE.rules.cfg["enabled"] is False                       # live, no restart
+    post("/api/config", {"path": "spam.enabled", "value": True})
     assert post("/api/config", {"path": "hook.url", "value": "ftp://x"})[0] == 400
     assert post("/api/config", {"path": "nope", "value": 1})[0] == 400
     c = json.load(urllib.request.urlopen(URL + "/api/config"))
-    assert c["cfg"]["spam"]["earrape_db"] == -5.0 and "distil-large-v3" in c["models"]
+    assert c["cfg"]["spam"] == {"enabled": True} and "distil-large-v3" in c["models"]
+
+
+def test_rules_list_change_delete_add_and_restore():
+    v = json.load(urllib.request.urlopen(URL + "/api/rules"))
+    assert {"words", "noise", "who", "count"} <= set(v["sections"]) and any(r["type"] == "word" for r in v["rules"])
+    ear = next(r for r in v["rules"] if r["id"] == "earrape")
+    s, v = post("/api/rules", {"op": "update", "id": "earrape", "db": -5})
+    assert s == 200 and CORE.book.get("loud")["db"] == -5.0 and next(r for r in CORE.rules.rules() if r["id"] == "earrape")["db"] == -5.0
+    assert post("/api/rules", {"op": "update", "id": "earrape", "db": 5})[0] == 400        # out of range: kept
+    assert CORE.book.get("loud")["db"] == -5.0
+    s, v = post("/api/rules", {"op": "add", "type": "loud", "name": "Long and loud", "db": -15, "ms": 6000})
+    assert s == 200 and [r["name"] for r in CORE.book.of("loud")][:2] == ["Earrape", "Long and loud"]
+    s, v = post("/api/rules", {"op": "add", "type": "word", "text": "koala\nwombat", "fuzzy": False, "action": "ask"})
+    assert CORE.words.find([("wombat", 0, 1)]) and CORE.book.action("koala") == "ask"
+    assert post("/api/rules", {"op": "add", "type": "word", "text": "/(/"})[0] == 400       # broken regex
+    assert post("/api/rules", {"op": "delete", "id": "who_voice"})[0] == 200 and CORE.book.get("who_voice") is None
+    assert "who_voice" in json.load(urllib.request.urlopen(URL + "/api/rules"))["missing"]
+    assert post("/api/rules", {"op": "add", "type": "who_voice"})[0] == 200 and CORE.book.get("who_voice")
+    assert post("/api/rules", {"op": "add", "type": "who_voice"})[0] == 400                 # one of those only
+    assert post("/api/rules", {"op": "reset", "section": "noise"})[0] == 200
+    assert CORE.book.get("loud")["db"] == ear["db"]
 
 
 def test_other_sites_cant_drive_it():
@@ -68,3 +89,23 @@ def test_other_sites_cant_drive_it():
 
 def test_setup_checks_the_credentials_shape():
     assert post("/api/setup", {"client_id": "abc", "client_secret": "x"})[0] == 400
+
+
+def test_review_queue_on_the_page():
+    rv, acts = CORE.review, []
+    rv.notifier = type("N", (), {"ask": lambda *a: None, "cancel": lambda *a: None})()
+    rv.later = lambda s, f: None
+    CORE.act = lambda uid, why, kind: acts.append(uid)
+    CORE.members = {"A": {"name": "alice", "mute": False}}
+    rv.ask_word("A", "kangaroo", 1.0, 1.5, p=0.2, text="kangaroo")
+    s = json.load(urllib.request.urlopen(URL + "/api/state"))["review"]
+    assert s["count"] == 1 and s["items"][0]["question"] == 'Did alice say "k*******"?' and "transcript" not in s["items"][0]
+    id = s["items"][0]["id"]
+    assert post("/api/review/label", {"id": id, "label": "nope"})[0] == 400
+    assert post("/api/review/label", {"id": "../x", "label": "wrong"})[0] == 400
+    assert post("/api/review/label", {"id": id, "label": "correct"})[1] == {"new": True} and acts == ["A"]
+    assert json.load(urllib.request.urlopen(URL + "/api/state"))["review"]["count"] == 0
+    try:
+        urllib.request.urlopen(URL + "/api/review/clip?id=../../etc/passwd")
+    except urllib.error.HTTPError as e:
+        assert e.code == 404

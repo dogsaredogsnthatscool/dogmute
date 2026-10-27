@@ -14,7 +14,7 @@ def main():
 
     mac = "--cpu" not in sys.argv and apple_gpu()
     gpu = "--cpu" not in sys.argv and ctranslate2.get_cuda_device_count() > 0
-    name = "distil-large-v3" if gpu or mac else "base.en"
+    name = "large-v3-turbo" if gpu or mac else "base.en"
     if mac:
         from huggingface_hub import snapshot_download
         print(f"  speech model {name} (Apple GPU) ...", flush=True)
