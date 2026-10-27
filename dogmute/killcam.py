@@ -296,7 +296,7 @@ def _linux_cameras():
     out = []
     for d in sorted(glob.glob(f"{V4L}/video*"), key=lambda p: int(p.rsplit("video", 1)[1])):
         try:
-            if "/virtual/" in os.path.realpath(d) or Path(d, "index").read_text().strip() != "0":
+            if "virtual" in Path(os.path.realpath(d)).parts or Path(d, "index").read_text().strip() != "0":
                 continue
             out.append((f"/dev/{os.path.basename(d)}", Path(d, "name").read_text().strip()))
         except (OSError, ValueError):

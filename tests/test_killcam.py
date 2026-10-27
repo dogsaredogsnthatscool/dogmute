@@ -62,7 +62,7 @@ def test_a_green_screen_clip_plays_over_the_picture(tmp_path):
 
 def test_linux_skips_loopback_devices(tmp_path, monkeypatch):
     real, virtual = tmp_path / "pci" / "video0", tmp_path / "virtual" / "video13"
-    for d, name in ((real, "Integrated Camera"), (virtual, "moshcap")):
+    for d, name in ((real, "Integrated Camera"), (virtual, "OBS loopback")):
         d.mkdir(parents=True)
         (d / "name").write_text(name + "\n")
         (d / "index").write_text("0\n")
