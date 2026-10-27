@@ -1,4 +1,4 @@
-"""Ring + whisper + word list + who-said-it, with espeak standing in for people in a call. No Discord needed: the speaking
+"""Ring + whisper + word list + who-said-it, with espeak (Windows: its own speech voices) standing in for people in a call. No Discord needed: the speaking
 events are written straight into Core.talk, and Core.act is replaced by a list."""
 import os
 import subprocess
@@ -7,11 +7,19 @@ import time
 import wave
 
 import shutil
+import sys
 
 import numpy as np
 import pytest
 
-pytestmark = pytest.mark.skipif(not shutil.which("espeak-ng"), reason="needs espeak-ng (it stands in for someone talking)")
+WIN = sys.platform == "win32"
+pytestmark = pytest.mark.skipif(not (WIN or shutil.which("espeak-ng")),
+                                reason="needs espeak-ng (it stands in for someone talking)")
+# Windows: System.Speech, a man's voice for "en" and a woman's for "en+f2", 16 kHz mono like espeak's after resampling
+SAPI = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+        "$s.SelectVoiceByHints('{gender}'); $s.Rate = -1; $f = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo "
+        "16000, ([System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen), ([System.Speech.AudioFormat.AudioChannel]::Mono); "
+        "$s.SetOutputToWaveFile('{path}', $f); $s.Speak($env:DOGMUTE_SAY); $s.Dispose()")
 
 tmp = tempfile.mkdtemp()
 os.environ["DOGMUTE_CONFIG"], os.environ["DOGMUTE_STATE"] = tmp + "/c", tmp + "/s"
@@ -22,7 +30,11 @@ from dogmute.words import WordList  # noqa: E402
 
 def say(text, voice="en"):
     p = tmp + "/say.wav"
-    subprocess.run(["espeak-ng", "-v", voice, "-s", "140", "-w", p, text], check=True)
+    if WIN:
+        subprocess.run(["powershell.exe", "-NoProfile", "-Command", SAPI.format(gender="Female" if "+f" in voice else "Male", path=p)],
+                       env={**os.environ, "DOGMUTE_SAY": text}, check=True)
+    else:
+        subprocess.run(["espeak-ng", "-v", voice, "-s", "140", "-w", p, text], check=True)
     w = wave.open(p)
     x = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768 * 0.5
     n = int(len(x) * 16000 / w.getframerate())
