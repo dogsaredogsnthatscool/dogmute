@@ -1,0 +1,56 @@
+# Windows: the tests (with speech played through a virtual sound card and heard per program), then DogMute-Setup.exe,
+# installed and checked on a clean runner. A v* tag publishes the installer as a GitHub release.
+name: windows
+on:
+  push:
+    tags: ["v*"]
+    branches: [windows]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: LABSN/sound-ci-helpers@v1
+      - name: Sound helper
+        run: |
+          mkdir bin, build -Force | Out-Null
+          cl /nologo /O2 /EHsc /std:c++17 /W3 win\listen.cpp /Fo:build\ /Fe:bin\dogmute-listen.exe ole32.lib shell32.lib version.lib
+          if ($LASTEXITCODE) { exit 1 }
+          bin\dogmute-listen.exe list
+      - name: Packages
+        run: pip install -q -r requirements.txt -r requirements-dev.txt
+      - name: Tests
+        env: {DOGMUTE_WIN_AUDIO: "1", PYTHONUTF8: "1"}
+        run: python -m pytest -q -rs -s tests
+
+  installer:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: LABSN/sound-ci-helpers@v1
+      - name: Inno Setup
+        run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build
+        run: |
+          $v = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME.TrimStart("v") } else { "0.0.0" }
+          win\build.ps1 -Version $v -Python python
+      - name: Install, run, uninstall
+        run: win\smoke.ps1
+      - uses: actions/upload-artifact@v4
+        with: {name: DogMute-Setup, path: dist/DogMute-Setup.exe}
+      - name: Release
+        if: github.ref_type == 'tag'
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release create $env:GITHUB_REF_NAME dist\DogMute-Setup.exe --title "DogMute $env:GITHUB_REF_NAME" --notes-file win\release-notes.md

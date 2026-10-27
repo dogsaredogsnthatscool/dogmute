@@ -98,6 +98,8 @@ class Listener(threading.Thread):
         try:
             if gpu:
                 self.model = WhisperModel(c["model"], device="cuda", compute_type="int8_float16")
+                if sys.platform == "win32":   # a missing cuBLAS or cuDNN DLL only shows on the first pass: find out now
+                    list(self.model.transcribe(np.zeros(RATE, np.float32), language="en")[0])
                 self.beam = GPU_BEAM
                 self.status = f"ready ({c['model']}, GPU)"
                 return
