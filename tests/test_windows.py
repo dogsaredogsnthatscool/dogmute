@@ -96,6 +96,8 @@ def test_rpc_over_a_named_pipe():
         try:
             r = rpc.RPC("123", lambda e, d: None)
             await r.connect(name)
+            r.close()
+            await asyncio.sleep(0.1)   # let the pipe close before the loop does
             return r.user
         finally:
             server.close()
