@@ -347,27 +347,39 @@
       </fieldset>
 
       <fieldset>
-        <legend>Overlay hook</legend>
-        <div class="set"><label for="s-hk-on">Send mutes to an overlay<small>Each mute is POSTed as JSON (name, reason, clip) to the address below, for a stream overlay or a camera effect.</small></label>
-          <span class="ctl"><input id="s-hk-on" type="checkbox" data-path="hook.enabled"></span></div>
-        <div class="set"><label for="s-hk-url">Address<small>Full URL, like <code>http://127.0.0.1:8820/api/cmd</code>.</small></label>
-          <span class="ctl"><input id="s-hk-url" type="text" spellcheck="false" placeholder="http://…" data-path="hook.url"></span></div>
-        <div class="set"><label for="s-hk-dir">Clip folder<small>Videos the overlay can play. Leave empty if it doesn't play clips.</small></label>
-          <span class="ctl"><input id="s-hk-dir" type="text" spellcheck="false" placeholder="~/Videos/overlay" data-path="hook.clip_dir"></span></div>
-        <div class="set needs-dir"><label for="s-hk-clip">Clip<small>None: the overlay's own animation.</small></label>
+        <legend>Killfeed camera</legend>
+        <div class="set"><label for="s-cam-on">Quickscope on my camera<small>Each mute plays a quickscope over your webcam: scope in, the shot, a hitmarker, their name in the killfeed. It's drawn on this computer. In Discord, pick <b>OBS Virtual Camera</b> as your camera (Linux: <b>DogMute camera</b>).</small></label>
+          <span class="ctl"><input id="s-cam-on" type="checkbox" data-path="camera.enabled"></span></div>
+        <div class="set"><label for="s-cam-dev">Webcam<small>The one it films. It's only on while you're in a voice channel.</small></label>
+          <span class="ctl"><select id="s-cam-dev" data-path="camera.device"></select></span></div>
+        <p class="hint" id="camState" role="status" hidden></p>
+        <div class="set"><label for="s-hk-dir">Clip folder<small>Your own videos, to play instead of the built-in quickscope. Leave empty for the built-in one.</small></label>
+          <span class="ctl"><input id="s-hk-dir" type="text" spellcheck="false" placeholder="~/Videos/killfeed" data-path="hook.clip_dir"></span></div>
+        <div class="set needs-dir"><label for="s-hk-clip">Clip<small>None: the built-in quickscope.</small></label>
           <span class="ctl"><select id="s-hk-clip" data-path="hook.clip"></select></span></div>
         <div class="set needs-dir"><label for="s-hk-key">Clip background<small>Green: green screen drops out. Black: black drops out. Full: the clip covers the picture.</small></label>
           <span class="ctl"><select id="s-hk-key" data-path="hook.key"><option value="green">green screen</option><option value="screen">black</option><option value="full">full</option></select></span></div>
         <div class="set needs-dir"><label for="s-hk-hit">Hitmarker at<small>Seconds into the clip. 0 = when it ends.</small></label>
           <span class="ctl"><input id="s-hk-hit" type="number" step="0.1" data-path="hook.hit_at"><i>s</i></span></div>
-        <div class="set needs-dir"><label for="s-hk-pre">Clip name prefix<small>Put in front of the file name the overlay receives, if it wants a sub-folder.</small></label>
-          <span class="ctl"><input id="s-hk-pre" type="text" spellcheck="false" data-path="hook.clip_prefix"></span></div>
-        <div class="set needs-dir"><label for="s-hk-sync">After adding a clip, run<small>A command that copies the folder to the overlay's machine. <code>{dir}</code> is the clip folder. Leave empty if it's local.</small></label>
-          <span class="ctl"><input id="s-hk-sync" type="text" spellcheck="false" placeholder="rsync -a {dir}/ host:clips/" data-path="hook.sync_cmd"></span></div>
         <div class="row foot">
           <label class="btn ghost needs-dir" for="clipFile">Add a clip…</label><input id="clipFile" type="file" accept="video/*,.gif" hidden>
+          <span id="camMsg" class="hint-inline msg"></span><span class="grow"></span>
+          <button id="camTest" class="btn" type="button">Try it</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Send mutes to another app</legend>
+        <div class="set"><label for="s-hk-on">Send each mute<small>Each mute is POSTed as JSON (name, reason, clip) to the address below, for a stream overlay or a bot of your own.</small></label>
+          <span class="ctl"><input id="s-hk-on" type="checkbox" data-path="hook.enabled"></span></div>
+        <div class="set"><label for="s-hk-url">Address<small>Full URL, like <code>http://127.0.0.1:9000/mute</code>.</small></label>
+          <span class="ctl"><input id="s-hk-url" type="text" spellcheck="false" placeholder="http://…" data-path="hook.url"></span></div>
+        <div class="set needs-dir"><label for="s-hk-pre">Clip name prefix<small>Put in front of the clip's file name the app receives, if it wants a sub-folder.</small></label>
+          <span class="ctl"><input id="s-hk-pre" type="text" spellcheck="false" data-path="hook.clip_prefix"></span></div>
+        <div class="set needs-sync"><label for="s-hk-sync">After adding a clip, run<small>A command run after Add a clip. <code>{dir}</code> is the clip folder.</small></label>
+          <span class="ctl"><input id="s-hk-sync" type="text" spellcheck="false" data-path="hook.sync_cmd"></span></div>
+        <div class="row foot">
           <span id="hkMsg" class="hint-inline msg"></span><span class="grow"></span>
-          <button id="hkTest" class="btn" type="button">Send a test</button></div>
+          <button id="hkTest" class="btn ghost" type="button">Send a test</button></div>
       </fieldset>
 
       <fieldset>
@@ -550,6 +562,10 @@ function render(s) {
         `<button class="btn${lab === "wrong" ? " ghost" : ""}" type="button" data-k="a${it.id}${lab}" data-rv="${it.id}" data-lab="${esc(lab)}">${esc(txt)}</button>`).join("")}</span></li>`;
   }).join("") : '<p class="empty">Nothing to review. When DogMute is unsure it asks here and in a pop-up, and your answers become labelled examples.</p>');
 
+  const cam = s.camera || "off", camBad = cam !== "off" && !cam.startsWith("on");
+  $("camState").hidden = cam === "off";
+  $("camState").textContent = camBad ? `Camera: ${cam}` : cam.startsWith("on: waits") ? "Camera: on, it starts when you join a voice channel." : `Camera: ${cam.replace(/^on: /, "on, ")}`;
+  $("camState").className = camBad ? "hint bad" : "hint";
   $("foot").textContent = `Audio: ${s.audio} · Speech: ${s.stt}${s.stt_ms != null ? ` (${s.stt_ms} ms a pass)` : ""} · Voices: ${s.voices}${s.voices === "ready" ? ` (${s.voices_known} known)` : ""}${s.hook !== "off" ? ` · Overlay: ${s.hook}` : ""}${s.me ? ` · You: ${s.me}` : ""}`;
 }
 
@@ -588,6 +604,17 @@ document.addEventListener("click", async (ev) => {
     else if (b.id === "wzFinish" || b.id === "wzSkip") await post("/api/setup/done", { done: true });
     else if (b.id === "rerunSetup") { await post("/api/setup/done", { done: false }); window.scrollTo(0, 0); }
     else if (b.id === "hkTest") { await post("/api/hook/test", { name: "Test" }); $("hkMsg").textContent = "Sent."; }
+    else if (b.id === "camTest") {
+      const j = await post("/api/camera/test", { name: "Test" });
+      if (!j.fired) $("camMsg").textContent = "Turn on Quickscope on my camera first.";
+      else {
+        $("camMsg").textContent = "Starting the camera…";
+        await new Promise((r) => setTimeout(r, 2500));
+        const cam = (await (await fetch("/api/state")).json()).camera || "";
+        $("camMsg").textContent = cam.startsWith("on: ") && !cam.startsWith("on: waits")
+          ? "Playing. Watch it in Discord: Settings → Voice & Video → Test Video." : "The camera isn't running: see the line above.";
+      }
+    }
     else if (b.id === "restart") { await post("/api/restart", {}); $("restartMsg").textContent = "Restarting…"; setTimeout(() => location.reload(), 4000); }
     else return;
     tick();
@@ -597,6 +624,10 @@ let lastFriends = "";
 async function loadConfig() {
   const c = await (await fetch("/api/config")).json();
   for (const el of document.querySelectorAll(".needs-dir")) el.hidden = !c.cfg.hook.clip_dir;
+  for (const el of document.querySelectorAll(".needs-sync")) el.hidden = !c.cfg.hook.sync_cmd;
+  const dev = c.cfg.camera.device, cams = c.cameras.map((d) => [d.key, d.label]);
+  if (dev && !cams.some(([k]) => k === dev)) cams.push([dev, `${dev} (not plugged in)`]);
+  $("s-cam-dev").innerHTML = '<option value="">default</option>' + cams.map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join("");
   $("s-hk-clip").innerHTML = '<option value="">none</option>' + c.clips.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
   $("s-model").innerHTML = c.models.map((m) => `<option value="${m}">${m.replace(".en", "")}</option>`).join("");
   for (const el of document.querySelectorAll("[data-path]")) {
@@ -640,13 +671,13 @@ $("settings").addEventListener("toggle", () => { if ($("settings").open) loadCon
 $("wzSrc").addEventListener("change", () => post("/api/config", { path: "audio.target", value: $("wzSrc").value }).then(tick));
 $("clipFile").addEventListener("change", async () => {
   const f = $("clipFile").files[0]; if (!f) return;
-  $("hkMsg").textContent = `Adding ${f.name}…`;
+  $("camMsg").textContent = `Adding ${f.name}…`;
   try {
     const r = await fetch(`/api/clip?name=${encodeURIComponent(f.name)}`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: f });
     const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText);
-    $("hkMsg").textContent = j.synced === false ? `Saved, but the copy command failed: ${j.sync_err}` : `${j.clip} added.`;
+    $("camMsg").textContent = j.synced === false ? `Saved, but the command after it failed: ${j.sync_err}` : `${j.clip} added.`;
     await loadConfig();
-  } catch (e) { $("hkMsg").textContent = `Not added: ${e.message}`; }
+  } catch (e) { $("camMsg").textContent = `Not added: ${e.message}`; }
   $("clipFile").value = "";
 });
 // ---------- rules ----------

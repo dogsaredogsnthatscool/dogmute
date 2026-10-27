@@ -51,6 +51,8 @@ Windows 10 version 2004 or newer, or Windows 11 (64-bit). No admin rights, no Py
 4. The page opens in its own window. Follow the 5 steps. DogMute sits in the tray (by the clock): click its icon to
    open the page again, right-click it to restart or quit. It starts by itself when you sign in.
 
+Want a quickscope on your camera each time someone gets muted? See [Killfeed camera](#killfeed-camera).
+
 DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
 *Application Audio Capture*). Other apps, games and your microphone are never heard.
 
@@ -106,7 +108,8 @@ Every rule and limit can be changed, turned off, deleted or added to on the page
   the word starred out (`said "k*******"`). The service log (the systemd journal, or `~/Library/Logs/dogmute.log` on
   macOS, `%LOCALAPPDATA%\DogMute\dogmute.log` on Windows) holds the same mute lines and errors, never what people said.
 - Nothing is sent anywhere. The exceptions are Discord's own OAuth token endpoint (once, to log your app in), the
-  one-time model downloads from Hugging Face, and the overlay hook if you switch it on.
+  one-time model downloads from Hugging Face, and the addresses you give **Send mutes to another app** if you switch it on.
+- The killfeed camera's pictures go only to the virtual camera on this computer. Nothing is recorded.
 
 Recording other people without their consent is illegal in some places (California, for example). DogMute never
 records.
@@ -117,6 +120,7 @@ records.
   Tools (to build the sound helper), or **Windows 10 2004+ / 11** (64-bit; the installer brings everything).
 - The **Discord desktop app** (on Linux: native, Flatpak or Snap).
 - **Python 3.12+** (tested on 3.14 on Linux; the installer picks 3.13 on a Mac).
+- Optional, for the [killfeed camera](#killfeed-camera): a webcam, and OBS Studio (Windows, macOS) or v4l2loopback (Linux).
 - Optional: an **NVIDIA GPU** with the CUDA 12 cuBLAS library (`libcublas.so.12`), or an **Apple Silicon** Mac on
   macOS 14+, for the big speech model. Without one it runs on the CPU with a smaller model.
 - Optional: `python3-gi` + WebKit2GTK 4.1 for the app window (otherwise use a browser), `notify-send` for pop-ups,
@@ -244,23 +248,42 @@ Everything else is under **Settings**, saved in `~/.config/dogmute/config.json` 
 - **Muting:** test mode, auto-unmute minutes, leave bots alone, desktop pop-ups.
 - **Words:** listening on/off, speech model, where it runs (auto / graphics card / CPU), CPU threads.
 - **Noise and mic spam:** watching on/off. The level numbers next to people in the call help you set the noise rules.
-- **Review queue**, **Overlay hook** (below), **Friends**, and the **page port** (needs a restart, a button on the page).
+- **Killfeed camera** and **Send mutes to another app** (below), **Review queue**, **Friends**, and the **page port**
+  (needs a restart, a button on the page).
 
-### Overlay hook
+### Killfeed camera
 
-When it's on, every mute is POSTed as JSON to the address you set, for example to drive a stream overlay or a camera effect:
+Turn on **Settings → Killfeed camera → Quickscope on my camera** and every mute plays a quickscope over your webcam:
+scope in, the shot with recoil, a hitmarker, "+100", and the muted person's name in a killfeed line. It is all drawn on
+your own computer, and it goes out as a virtual camera:
+
+1. **Get a virtual camera once.** Windows and macOS: install [OBS Studio](https://obsproject.com) (free). DogMute uses
+   its virtual camera; OBS doesn't have to be running. Linux:
+   `sudo apt install v4l2loopback-dkms`, then
+   `sudo modprobe v4l2loopback exclusive_caps=1 card_label="DogMute camera"` (DogMute only writes to a loopback
+   labelled DogMute, never to another app's).
+2. **In Discord**, **User Settings → Voice & Video → Camera**: pick **OBS Virtual Camera** (Linux: **DogMute camera**).
+3. **Try it** on the page plays one right away; Discord's **Test Video** shows it.
+
+DogMute films the default webcam (pick another under **Webcam**; virtual cameras are never picked, so it can't film
+itself). The webcam is only on while you're in a voice channel, and for a few seconds after **Try it**. Pictures are never
+saved or sent anywhere except to the virtual camera.
+
+Want your own animation instead of the built-in one? Set a **Clip folder**, then **Add a clip…** and pick it under
+**Clip**. It plays once over your camera: **green** drops a green screen out, **black** drops black out, **full** covers
+the picture. **Hitmarker at** is when the shot lands (seconds; 0 = when the clip ends).
+
+### Send mutes to another app
+
+For your own stream overlay or bot: with **Send each mute** on, every mute is POSTed as JSON to the address you set
+(for example `http://127.0.0.1:9000/mute`; several addresses can be given, space separated):
 
 ```json
 {"cmd": "killfeed", "event": "mute", "name": "SomeUser", "by": "you", "reason": "said \"k*******\"",
  "clip": "", "key": "green", "hit_at": 0.0}
 ```
 
-`clip`, `key` and `hit_at` are hints for overlays that play a video:
-- `clip` is a file from your clip folder, with an optional prefix.
-- `key` is `green` for a green screen, `screen` for black dropping out, or `full`.
-- `hit_at` is when the hit lands, in seconds.
-
-**Add a clip…** copies a video into the clip folder and can then run your own sync command, for example `rsync`.
+`clip`, `key` and `hit_at` are the killfeed camera's clip settings, for apps that play the clip themselves.
 
 ### BlackHole instead of screen recording
 

@@ -17,6 +17,8 @@ jobs:
         with: {python-version: "3.13"}
       - uses: ilammy/msvc-dev-cmd@v1
       - uses: LABSN/sound-ci-helpers@v1
+      - name: OBS Studio (its virtual camera is what Discord picks)
+        run: choco install obs-studio -y --no-progress
       - name: Sound helper
         run: |
           mkdir bin, build -Force | Out-Null
@@ -26,7 +28,7 @@ jobs:
       - name: Packages
         run: pip install -q -r requirements.txt -r requirements-dev.txt
       - name: Tests
-        env: {DOGMUTE_WIN_AUDIO: "1", PYTHONUTF8: "1"}
+        env: {DOGMUTE_WIN_AUDIO: "1", DOGMUTE_WIN_CAMERA: "1", PYTHONUTF8: "1"}
         run: python -m pytest -q -rs -s tests
 
   installer:
