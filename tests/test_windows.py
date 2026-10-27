@@ -103,11 +103,11 @@ def test_rpc_over_a_named_pipe():
             server.close()
 
     assert asyncio.run(go()) == {"id": "1", "username": "me"}
-    assert seen == [(rpc.OP_HANDSHAKE, {"v": 1, "client_id": "123"})]
+    assert seen[0] == (rpc.OP_HANDSHAKE, {"v": 1, "client_id": "123"})   # then our goodbye (OP_CLOSE)
 
 
 SAY = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-       "$s.Rate = -2; Start-Sleep -Milliseconds {wait}; $s.Speak('{text}')")
+       "$s.Rate = -2; Start-Sleep -Milliseconds {wait}; $s.Speak('{text}'); Start-Sleep 8")   # stays open, like Discord
 needs_sound = pytest.mark.skipif(not (WIN and os.environ.get("DOGMUTE_WIN_AUDIO") and audio.HELPER.exists()),
                                  reason="needs Windows, a sound device and bin/dogmute-listen.exe")
 
