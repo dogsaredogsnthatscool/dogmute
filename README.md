@@ -4,7 +4,7 @@ Automatic **local mute** for Discord voice calls. When someone in your call says
 mutes them **for you only**, using Discord's own per-user mute (right-click someone > Mute). You don't need to be a moderator.
 No bot joins the server, and nobody else can see anything.
 
-It runs on your computer (Linux or macOS): it listens to the call audio Discord plays to you, turns speech into text
+It runs on your computer (Linux, macOS or Windows): it listens to the call audio Discord plays to you, turns speech into text
 offline, and asks the Discord app to mute the person who said a word on your list, or who is blasting noise.
 
 <img src="dogmute/static/icon.png" width="96" alt="DogMute icon">
@@ -34,6 +34,22 @@ macOS 13 Ventura or newer. Apple Silicon runs the accurate speech model on its G
 
 DogMute uses Apple's ScreenCaptureKit to hear only the Discord app, so no audio driver is needed. If you'd rather not
 give that permission, use [BlackHole](#blackhole-instead-of-screen-recording) instead.
+
+### On Windows
+
+Windows 10 version 2004 or newer, or Windows 11 (64-bit). No admin rights, no Python, no driver.
+
+1. Open the **Discord desktop app** and log in.
+2. Download **`DogMute-Setup.exe`** from the [latest release](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest)
+   and run it. The installer isn't code-signed, so Windows may say *"Windows protected your PC"*: click
+   **More info → Run anyway**.
+3. Got an NVIDIA graphics card? Leave **Use my NVIDIA graphics card** ticked: it downloads NVIDIA's speech libraries once
+   (about 1.2 GB) for the accurate `large-v3-turbo` model. Without it, speech runs on the processor with `base.en`.
+4. The page opens in its own window. Follow the 5 steps. DogMute sits in the tray (by the clock): click its icon to
+   open the page again, right-click it to restart or quit. It starts by itself when you sign in.
+
+DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
+*Application Audio Capture*). Other apps, games and your microphone are never heard.
 
 <img src="docs/page.png" width="520" alt="DogMute's page during a call: who's talking, friends, mutes with Unmute buttons">
 
@@ -68,12 +84,12 @@ Every rule and limit can be changed, turned off, deleted or added to on the page
 
 | Part | What it does |
 |---|---|
-| Discord connection | Discord's official **local RPC** (the `discord-ipc-0` socket the desktop app opens: in `$XDG_RUNTIME_DIR` on Linux, Flatpak and Snap too, or in `$TMPDIR` on macOS), with your own Discord app and the scopes `rpc rpc.voice.read rpc.voice.write`. It gets who is in your channel and who is speaking when (`SPEAKING_START/STOP`), and mutes with `SET_USER_VOICE_SETTINGS {mute: true}`. |
-| Audio | Linux: `pw-record` attached only to Discord's playback stream (`playStream`) in PipeWire. macOS: a small Swift helper (`mac/listen.swift`, built by the installer) that takes only the Discord app's sound through ScreenCaptureKit, or reads a BlackHole loopback device. Either way it's the mix you hear, never your microphone, and it stays in a 30 s buffer in memory. |
-| Speech to text | [faster-whisper](https://github.com/SYSTRAN/faster-whisper): `large-v3-turbo` with beam search on an NVIDIA GPU (about 0.5 s per pass), or `base.en` on the CPU. On Apple Silicon, [mlx-whisper](https://github.com/ml-explore/mlx-examples/tree/main/whisper) runs `large-v3-turbo` on the Mac's GPU through Metal, with faster-whisper on the CPU as the fallback. While anyone talks, the last 6 s are transcribed about once a second; a list word counts once two passes heard it whole (or the last pass over talk that ended), and segments whisper itself flags as made up are dropped. On 53 real call clips `distil-large-v3` (the old default) missed the word in 5 of 25 that `large-v3` and `large-v3-turbo` both heard. |
+| Discord connection | Discord's official **local RPC** (the `discord-ipc-0` socket the desktop app opens: in `$XDG_RUNTIME_DIR` on Linux, Flatpak and Snap too, in `$TMPDIR` on macOS, or the named pipe `\\.\pipe\discord-ipc-0` on Windows), with your own Discord app and the scopes `rpc rpc.voice.read rpc.voice.write`. It gets who is in your channel and who is speaking when (`SPEAKING_START/STOP`), and mutes with `SET_USER_VOICE_SETTINGS {mute: true}`. |
+| Audio | Linux: `pw-record` attached only to Discord's playback stream (`playStream`) in PipeWire. macOS: a small Swift helper (`mac/listen.swift`, built by the installer) that takes only the Discord app's sound through ScreenCaptureKit, or reads a BlackHole loopback device. Windows: a small C++ helper (`win/listen.cpp`, `dogmute-listen.exe`) that takes only Discord's sound, its child processes' included, through WASAPI process loopback (Windows 10 2004+), or the loopback of an output device. Either way it's the mix you hear, never your microphone, and it stays in a 30 s buffer in memory. |
+| Speech to text | [faster-whisper](https://github.com/SYSTRAN/faster-whisper): `large-v3-turbo` with beam search on an NVIDIA GPU (about 0.5 s per pass), or `base.en` on the CPU. On Apple Silicon, [mlx-whisper](https://github.com/ml-explore/mlx-examples/tree/main/whisper) runs `large-v3-turbo` on the Mac's GPU through Metal, with faster-whisper on the CPU as the fallback. On Windows the NVIDIA GPU needs the CUDA 12 cuBLAS and cuDNN 9 DLLs, which the installer fetches (the official `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` wheels from PyPI, checked against their SHA-256). While anyone talks, the last 6 s are transcribed about once a second; a list word counts once two passes heard it whole (or the last pass over talk that ended), and segments whisper itself flags as made up are dropped. On 53 real call clips `distil-large-v3` (the old default) missed the word in 5 of 25 that `large-v3` and `large-v3-turbo` both heard. |
 | Who said it | Each word's timestamp is lined up with Discord's speaking events. If several people talk at once: someone with an open mic counts as background, and otherwise the voice decides. A [WeSpeaker](https://github.com/wenet-e2e/wespeaker) ResNet34 speaker embedding (ONNX, CPU) is learned from moments each person talks alone. In busy calls an online diarizer (`dogmute/diar.py`) also sorts the mix, every half second, into voices with the same model and Silero VAD, and names each voice after the Discord user whose speaking indicator was on while it was heard; the voice around the word then answers who said it (the *Voices told apart* rule, on by default). |
 | Noise rules | Loudness in 50 ms slices, counted only while exactly one person is talking. |
-| Page | A small local page at `http://127.0.0.1:8853` (Python's built-in HTTP server). Only same-origin JSON requests are accepted, so other websites can't drive it. |
+| Page | A small local page at `http://127.0.0.1:8853` (Python's built-in HTTP server). On Windows it opens in an Edge app window, and a tray icon keeps the engine running (`dogmute/winapp.py`). Only same-origin JSON requests are accepted, so other websites can't drive it. |
 
 ## Privacy
 
@@ -83,9 +99,9 @@ Every rule and limit can be changed, turned off, deleted or added to on the page
   of each doubtful case.
 - Voice profiles stay in memory for the current call only. They are cleared when you leave or switch channels, and when
   DogMute stops.
-- The only thing written to disk is the mute log, `~/.local/state/dogmute/mutes.jsonl`: time, person, and a reason with
+- The only thing written to disk is the mute log, `~/.local/state/dogmute/mutes.jsonl` (Windows: `%LOCALAPPDATA%\DogMute\mutes.jsonl`): time, person, and a reason with
   the word starred out (`said "k*******"`). The service log (the systemd journal, or `~/Library/Logs/dogmute.log` on
-  macOS) holds the same mute lines and errors, never what people said.
+  macOS, `%LOCALAPPDATA%\DogMute\dogmute.log` on Windows) holds the same mute lines and errors, never what people said.
 - Nothing is sent anywhere. The exceptions are Discord's own OAuth token endpoint (once, to log your app in), the
   one-time model downloads from Hugging Face, and the overlay hook if you switch it on.
 
@@ -94,8 +110,8 @@ records.
 
 ## Requirements
 
-- **Linux** with **PipeWire** (`pw-record` and `pw-dump`), or **macOS 13+** with Homebrew and the Xcode Command Line
-  Tools (to build the sound helper).
+- **Linux** with **PipeWire** (`pw-record` and `pw-dump`), **macOS 13+** with Homebrew and the Xcode Command Line
+  Tools (to build the sound helper), or **Windows 10 2004+ / 11** (64-bit; the installer brings everything).
 - The **Discord desktop app** (on Linux: native, Flatpak or Snap).
 - **Python 3.12+** (tested on 3.14 on Linux; the installer picks 3.13 on a Mac).
 - Optional: an **NVIDIA GPU** with the CUDA 12 cuBLAS library (`libcublas.so.12`), or an **Apple Silicon** Mac on
@@ -125,6 +141,17 @@ The installer:
 
 To remove it, run `./install.sh --remove`. Your settings stay in `~/.config/dogmute`.
 
+On Windows, use `DogMute-Setup.exe` (above); remove it under **Settings → Apps → Installed apps → DogMute**. Settings
+stay in `%APPDATA%\DogMute`. To run from a checkout instead, with Python 3.13 and Visual Studio's C++ Build Tools, in a
+Developer PowerShell:
+
+```powershell
+cl /O2 /EHsc /std:c++17 win\listen.cpp /Fe:bin\dogmute-listen.exe ole32.lib shell32.lib version.lib
+py -3.13 -m venv .venv; .venv\Scripts\pip install -r requirements.txt   # + -r requirements-win-gpu.txt for an NVIDIA card
+.venv\Scripts\python -m dogmute.winapp                                     # tray + page; python -m dogmute for the engine alone
+win\build.ps1 -Version 1.0.0                                               # or build the installer: dist\DogMute-Setup.exe
+```
+
 ## Setup (the 5 steps on the page)
 
 DogMute talks to the Discord app through your own free Discord application, so it never sees your password. The page
@@ -138,7 +165,8 @@ walks you through it:
 | <img src="docs/setup-4.png" width="300" alt="Step 4"> | **4. Pick Discord's voice output.** It's found automatically once you're in any voice channel. You can choose another app's sound if you call from somewhere else. On a Mac, this is where macOS asks to let **Python** record the screen and system audio: the step shows **Open System Settings** and **Restart DogMute** buttons until it's allowed. |
 | <img src="docs/setup-5.png" width="300" alt="Step 5"> | **5. Check that it hears the call.** Press **Start the check** and ask someone in your call to say "kangaroo". Nobody gets muted during the check. |
 
-The ID, secret and Discord tokens are saved only on your computer, in `~/.config/dogmute/discord.json` (mode 600).
+The ID, secret and Discord tokens are saved only on your computer, in `~/.config/dogmute/discord.json` (mode 600;
+Windows: `%APPDATA%\DogMute\discord.json`, in your own profile).
 The RPC voice permissions work for the app's owner without Discord's review. To use one app on several accounts, add
 those accounts under **App Testers** in the developer portal. **Settings → Run setup again** brings the steps back.
 
@@ -208,7 +236,7 @@ read it: `base64 -d dogmute/data/words.default.b64`.
 
 ## Settings
 
-Everything else is under **Settings**, saved in `~/.config/dogmute/config.json`.
+Everything else is under **Settings**, saved in `~/.config/dogmute/config.json` (Windows: `%APPDATA%\DogMute`).
 
 - **Muting:** test mode, auto-unmute minutes, leave bots alone, desktop pop-ups.
 - **Words:** listening on/off, speech model, where it runs (auto / graphics card / CPU), CPU threads.
@@ -266,11 +294,15 @@ loopback driver:
 | It **missed a word** | Make sure the footer says `large-v3-turbo, GPU`. The CPU models miss more slang. The word may also be spelled differently in the transcript, so add a variant to your list (a `/regex/` line works too). |
 | It says **"couldn't tell who"** | Several mics were open at once. It learns voices from moments people talk alone, so it gets better during a call. Until then, the log shows a Mute button for each candidate. |
 | **Speech runs on the CPU** although you have an NVIDIA card | It needs the CUDA 12 cuBLAS library (`libcublas.so.12`): `sudo apt install libcublas12` or the CUDA 12 toolkit. Then run `./install.sh` again. |
-| **Port 8853 is taken** | Set `"port"` in `~/.config/dogmute/config.json`, then `systemctl --user restart dogmute` (macOS: `launchctl kickstart -k gui/$(id -u)/local.dogmute`). |
+| **Port 8853 is taken** | Set `"port"` in `~/.config/dogmute/config.json`, then `systemctl --user restart dogmute` (macOS: `launchctl kickstart -k gui/$(id -u)/local.dogmute`; Windows: `%APPDATA%\DogMute\config.json`, then tray icon → **Restart DogMute**). |
+| **Windows: step 3 never finds Discord** | DogMute looks for the pipe `\\.\pipe\discord-ipc-0`. Check in PowerShell: `ls \\.\pipe\ \| findstr discord`. If it's missing, quit Discord from its tray icon (not just the window's ×) and open it again. Discord in a browser has no pipe. |
+| **Windows: step 4 says it needs Windows 10 version 2004** | Older Windows can't hear one program on its own. Update Windows, or pick **Every app's sound on this PC** (then other apps' sound is heard too). |
+| **Windows: speech runs on the CPU** although you have an NVIDIA card | Run `DogMute-Setup.exe` again and tick **Use my NVIDIA graphics card**. The footer should then say `large-v3-turbo, GPU`. |
+| **Windows: no pop-ups** | **Settings → System → Notifications**: turn on notifications, and DogMute's under the app list. Focus assist / Do not disturb hides them too. |
 | **macOS: step 4 says "macOS needs your OK"** | Click **Open System Settings**, turn on **Python** under **Screen & System Audio Recording** (or **Microphone** for BlackHole), then **Restart DogMute**. If Python isn't in the list, click **+** and pick it, or press **Restart DogMute** once so macOS asks again. After a Python update macOS may ask again. |
 | **macOS: step 3 never finds Discord** | DogMute looks for `discord-ipc-0` in `$TMPDIR`. Check with `ls $TMPDIR/discord-ipc-*`. If it's empty, fully quit Discord (⌘Q) and open it again. |
 | **macOS: Discord found but silent** | Join a voice channel: Discord only plays call audio while you're in one. If it still doesn't hear anything, pick **Every app's sound on this Mac**, or use [BlackHole](#blackhole-instead-of-screen-recording). |
-| Anything else | `journalctl --user -u dogmute -n 50` (macOS: `tail -50 ~/Library/Logs/dogmute.log`) shows what DogMute is doing (mute events only, never what people said). |
+| Anything else | `journalctl --user -u dogmute -n 50` (macOS: `tail -50 ~/Library/Logs/dogmute.log`; Windows: `%LOCALAPPDATA%\DogMute\dogmute.log`) shows what DogMute is doing (mute events only, never what people said). |
 
 ## Tests
 
@@ -283,6 +315,11 @@ No Discord is needed: the RPC and speaking events are mocked, and `tests/test_we
 `python3 scripts/screens.py` re-renders the screenshots in `docs/` from made-up states (it needs `python3-gi` +
 WebKit2GTK 4.1). `tests/test_pipeline.py` uses `espeak-ng` to stand in for
 people talking and downloads the speech models. It is skipped when `espeak-ng` is missing.
+
+On Windows, `tests/test_windows.py` also talks to a stand-in Discord over a real named pipe, and (with
+`DOGMUTE_WIN_AUDIO=1`) has two programs speak at once and checks that listening to one hears its word and not the
+other's. The [windows workflow](.github/workflows/windows.yml) runs all of it on GitHub's Windows machines with a
+virtual sound card, then builds the installer, installs it, checks the tray restarts the engine, and uninstalls it.
 
 ## License
 
