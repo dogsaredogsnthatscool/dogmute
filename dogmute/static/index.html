@@ -219,6 +219,8 @@
           <p id="wz4Msg"></p>
           <div class="row"><label class="mini" for="wzSrc">Listen to</label><select id="wzSrc"></select></div>
           <p class="hint">Only what you hear from the call. Never your microphone, and nothing is recorded.</p>
+          <p class="hint" id="wz4Win" hidden>On Windows, DogMute hears only Discord, through Windows' own per-app sound capture
+            (Windows 10 version 2004 or newer). No driver, and nothing to allow.</p>
           <div id="wz4Mac" hidden>
             <p class="hint">On a Mac, DogMute hears Discord through macOS's screen and audio capture. It keeps no picture and needs no driver.
               The first time, macOS asks whether <b>Python</b> may record the screen and system audio. That's DogMute: turn it on.</p>
@@ -372,7 +374,7 @@
         <legend>Review queue</legend>
         <div class="set"><label for="s-rv-on">Ask when unsure<small>A doubtful word, an unclear speaker or a near-miss goes to the Review list instead of muting. Every case is saved with your answer. Off: only sure hits mute, nothing is saved.</small></label>
           <span class="ctl"><input id="s-rv-on" type="checkbox" data-path="review.enabled"></span></div>
-        <div class="set"><label for="s-rv-pop">Ask in a pop-up<small>Linux: buttons in the notification. Mac: the pop-up points here, answer in the list.</small></label>
+        <div class="set"><label for="s-rv-pop">Ask in a pop-up<small>Linux: buttons in the notification. Mac and Windows: the pop-up points here, answer in the list.</small></label>
           <span class="ctl"><input id="s-rv-pop" type="checkbox" data-path="review.notify"></span></div>
         <div class="set"><label for="s-rv-max">Pop-ups at most<small>More questions wait in the list.</small></label>
           <span class="ctl"><input id="s-rv-max" type="number" step="1" data-path="review.max_per_min"><i>/min</i></span></div>
@@ -454,6 +456,7 @@ function wizard(s) {
   $("wz4Msg").innerHTML = w.audio_ok ? `<span class="wz-ok">Hearing it.</span> Change it only if you use a different app for calls.`
     : perm ? "" : (s.audio === "waiting for Discord audio" ? "Join any voice channel in Discord, and its voice output shows up here." : esc(s.audio));
   $("wz4Mac").hidden = !mac;
+  $("wz4Win").hidden = s.platform !== "windows";
   $("wz4Perm").hidden = $("wz4Fix").hidden = !perm;
   if (perm) $("wz4Perm").innerHTML = /Microphone/.test(s.audio)
     ? "macOS hasn't let DogMute read the loopback device yet. Click <b>Open System Settings</b>, turn on <b>Python</b> under <b>Microphone</b>, then click <b>Restart DogMute</b>."
