@@ -1,8 +1,9 @@
-"""Discord local RPC over the IPC socket (discord-ipc-N): frames, auth, commands, events."""
+"""Discord local RPC over the IPC socket (discord-ipc-N; a named pipe on Windows): frames, auth, commands, events."""
 import asyncio
 import glob
 import json
 import os
+import re
 import struct
 import sys
 import time
@@ -53,7 +54,16 @@ def socket_dirs():
     return [run, f"{run}/app/com.discordapp.Discord", f"{run}/snap.discord", f"{run}/app/com.discordapp.DiscordCanary", "/tmp"]
 
 
+PIPES = "\\\\.\\pipe\\"   # \\.\pipe\ : Windows' named pipes, where Discord opens discord-ipc-N
+
+
 def find_socket():
+    if sys.platform == "win32":
+        try:
+            names = sorted(n for n in os.listdir(PIPES) if re.fullmatch(r"discord-ipc-[0-9]", n))
+        except OSError:
+            names = []
+        return PIPES + names[0] if names else None
     for d in socket_dirs():
         for p in sorted(glob.glob(f"{d}/discord-ipc-[0-9]")):
             return p
@@ -109,7 +119,14 @@ class RPC:
         self._task = None
 
     async def connect(self, path):
-        self.reader, self.writer = await asyncio.open_unix_connection(path)
+        if sys.platform == "win32":
+            loop = asyncio.get_running_loop()
+            self.reader = asyncio.StreamReader()
+            proto = asyncio.StreamReaderProtocol(self.reader)
+            transport, _ = await loop.create_pipe_connection(lambda: proto, path)
+            self.writer = asyncio.StreamWriter(transport, proto, self.reader, loop)
+        else:
+            self.reader, self.writer = await asyncio.open_unix_connection(path)
         self._send(OP_HANDSHAKE, {"v": 1, "client_id": self.client_id})
         try:
             op, msg = await asyncio.wait_for(self._read(), 10)

@@ -1,0 +1,5 @@
+# Windows with an NVIDIA card: the CUDA 12 cuBLAS and cuDNN 9 DLLs for the big speech model (about 1.2 GB).
+# The installer downloads these same wheels when you tick the graphics-card box; from a source checkout:
+#   .venv\Scripts\pip install -r requirements-win-gpu.txt
+nvidia-cublas-cu12==12.9.1.4
+nvidia-cudnn-cu12==9.10.2.21

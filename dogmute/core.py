@@ -26,8 +26,11 @@ from .stt import Listener
 from .voice import Voices
 from .words import masked
 
-CONF = Path(os.environ.get("DOGMUTE_CONFIG", Path.home() / ".config/dogmute"))
-STATE = Path(os.environ.get("DOGMUTE_STATE", Path.home() / ".local/state/dogmute"))
+WIN = sys.platform == "win32"
+if WIN:
+    from . import windows
+CONF = Path(os.environ.get("DOGMUTE_CONFIG") or (windows.conf_dir() if WIN else Path.home() / ".config/dogmute"))
+STATE = Path(os.environ.get("DOGMUTE_STATE") or (windows.state_dir() if WIN else Path.home() / ".local/state/dogmute"))
 HERE = Path(__file__).resolve().parent
 
 DEFAULTS = {
@@ -474,6 +477,8 @@ class Core:
             self.hook.hit(name, reason)
         if self.cfg["notify"] and action in ("muted", "would mute"):
             title = f"DogMute {'muted' if action == 'muted' else 'would mute'} {name}"
+            if WIN:
+                return windows.toast(title, reason)
             cmd = (["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
                     "-e", "end run", title, reason] if sys.platform == "darwin"
                    else ["notify-send", "-a", "DogMute", "-i", "audio-volume-muted", title, reason])
@@ -701,7 +706,7 @@ class Core:
                 "friends": self.cfg["friends"], "has_creds": bool(self.creds.get("client_id")), "setup": self.setup_view(),
                 "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off",
                 "review": self.review.view(), "review_s": self.cfg["review"]["ask_timeout_s"],
-                "platform": "mac" if sys.platform == "darwin" else "linux"}
+                "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux"}
 
     async def run(self):
         self.loop = asyncio.get_running_loop()

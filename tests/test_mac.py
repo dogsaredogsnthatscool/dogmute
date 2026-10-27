@@ -5,8 +5,11 @@ import time
 import types
 
 import numpy as np
+import pytest
 
 from dogmute import audio, rpc, stt
+
+needs_scripts = pytest.mark.skipif(sys.platform == "win32", reason="the stand-in helpers are #! scripts")
 
 
 def test_socket_in_tmpdir(tmp_path, monkeypatch):
@@ -37,6 +40,7 @@ def _helper(tmp_path, body):
 
 def _capture(monkeypatch, helper, target=""):
     monkeypatch.setattr(audio, "MAC", True)
+    monkeypatch.setattr(audio, "WIN", False)
     monkeypatch.setattr(audio, "HELPER", helper)
     got = []
     cap = audio.Capture(lambda x, t: got.append(x), lambda: target)
@@ -44,6 +48,7 @@ def _capture(monkeypatch, helper, target=""):
     return cap, got
 
 
+@needs_scripts
 def test_helper_sound_reaches_the_ring(tmp_path, monkeypatch):
     h = _helper(tmp_path, """
         import array, time
@@ -62,6 +67,7 @@ def test_helper_sound_reaches_the_ring(tmp_path, monkeypatch):
     assert cap.status == "listening"
 
 
+@needs_scripts
 def test_helper_exit_codes_become_plain_status(tmp_path, monkeypatch):
     h = _helper(tmp_path, """
         sys.stderr.write("permission: screen\\n"); sys.exit(3)
@@ -74,8 +80,8 @@ def test_helper_exit_codes_become_plain_status(tmp_path, monkeypatch):
     cap.stop = True
     assert cap.status == audio.PERMISSION["screen"]
     assert cap.asked   # the prompt is asked for once, not on every retry
-    assert cap._mac_status(2, "", "")[0] == audio.WAITING
-    assert cap._mac_status(3, "permission: microphone", "device:BlackHole 2ch")[0] == audio.PERMISSION["microphone"]
+    assert cap._helper_status(2, "", "")[0] == audio.WAITING
+    assert cap._helper_status(3, "permission: microphone", "device:BlackHole 2ch")[0] == audio.PERMISSION["microphone"]
 
 
 def test_apple_gpu_speech(monkeypatch):

@@ -51,6 +51,9 @@ class Notifier:
 
     def ask(self, key, title, body, choices, timeout, done):
         """choices: [(key, label)]. done(choice key) is called from a thread when one is pressed (never on timeout)."""
+        if sys.platform == "win32":      # a toast that opens the page, where the list has the buttons
+            from .windows import toast
+            return toast(title, body)
         if sys.platform == "darwin":     # osascript can't do buttons here: the page queue is the way to answer
             return self._run(["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
                               "-e", "end run", title, body])
@@ -236,7 +239,7 @@ class Review:
         if not self.cfg["notify"] or len(self.sent) >= self.cfg["max_per_min"]:
             return                                             # waits on the page
         self.sent.append(now)
-        body = "Press a button, or answer on the DogMute page" if sys.platform != "darwin" else "Answer on the DogMute page"
+        body = "Press a button, or answer on the DogMute page" if sys.platform == "linux" else "Answer on the DogMute page"
         self.notifier.ask(id, question, body, choices, self.cfg["ask_timeout_s"], lambda key: self._answer(id, key))
 
     def _answer(self, id, key):

@@ -11,3 +11,6 @@ discord.json
 *.log
 *.onnx
 *.bin
+.venv-build/
+build/
+dist/
