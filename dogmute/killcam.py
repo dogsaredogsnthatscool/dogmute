@@ -321,9 +321,9 @@ def open_webcam(device):
     """(cv2.VideoCapture, label) for camera.device; raises RuntimeError worded for the page."""
     import cv2
     if sys.platform == "win32":
-        names = _helper_cameras().get("mf", [])
-        pick = [i for i, n in enumerate(names) if (n == device if device else not _virtual(n))]
-        if names and not pick:
+        names = _helper_cameras().get("mf")                    # None: the helper couldn't say, so try the first one
+        pick = [i for i, n in enumerate(names or []) if (n == device if device else not _virtual(n))]
+        if names is not None and not pick:
             raise RuntimeError("that webcam is gone" if device else "no webcam found")
         i = pick[0] if pick else 0
         args, label = (i, cv2.CAP_MSMF), names[i] if names else "the webcam"
