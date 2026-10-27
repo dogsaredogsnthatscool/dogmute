@@ -11,6 +11,9 @@ offline, and asks the Discord app to mute the person who said a word on your lis
 
 ## Quick start
 
+**On Windows?** Download [`DogMute-Setup.exe`](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest) and
+see [On Windows](#on-windows). The steps below are for Linux; a Mac has its own list just after.
+
 1. Open the **Discord desktop app** and log in.
 2. Run: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
    (or `git clone` this repo and run `./install.sh`). It checks your computer and tells you how to fix anything missing.
