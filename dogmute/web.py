@@ -52,7 +52,9 @@ def serve(core):
             if path == "/api/config":
                 from .core import DEFAULTS, MODELS, SCHEMA
                 from .hook import clips
+                from .killcam import cameras
                 return self._send(200, {"cfg": core.cfg, "defaults": DEFAULTS, "models": MODELS, "clips": clips(core.cfg["hook"]),
+                                        "cameras": cameras(),
                                         "limits": {k: v[1:] for k, v in SCHEMA.items() if v[0] in (int, float)}})
             f = STATIC / ("index.html" if path == "/" else path.lstrip("/"))
             if f.resolve().parent != STATIC or not f.is_file():
@@ -113,6 +115,9 @@ def serve(core):
                 core.reset_cfg(d["group"])
             elif path == "/api/hook/test":
                 core.hook.hit(d.get("name") or "Test", "test")
+            elif path == "/api/camera/test":   # the killfeed camera's moment now (and the camera on for a while outside a call)
+                return {"fired": core.killcam.fire(d.get("name") or "Test", (core.me or {}).get("username", "") or "you",
+                                                    test=True)}
             elif path == "/api/restart":
                 threading.Timer(0.3, lambda: os._exit(0)).start()  # systemd (Linux), launchd (macOS) or the tray (Windows) starts us again
             elif path == "/api/privacy" and sys.platform == "darwin":   # macOS: the Privacy & Security page to allow capture

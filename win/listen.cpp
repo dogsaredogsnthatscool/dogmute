@@ -1,4 +1,5 @@
 // dogmute-listen.exe: DogMute's sound source on Windows. Writes 16 kHz mono float32 samples to stdout and nothing to disk.
+// It also lists the webcams, for the killfeed camera (dogmute/killcam.py).
 // The release workflow builds it with MSVC:
 //   cl /nologo /O2 /EHsc /std:c++17 win\listen.cpp /Fe:bin\dogmute-listen.exe ole32.lib shell32.lib version.lib
 //
@@ -8,6 +9,8 @@
 //   dogmute-listen pid <n>         the same for one process id and its children (the tests use it)
 //   dogmute-listen all             every app's sound: a loopback of the default speakers (never a microphone)
 //   dogmute-listen device <name>   a loopback of one output device, by name (only outputs: a microphone can't be picked)
+//   dogmute-listen cameras         JSON {"mf": [name], "dshow": [name]}: video inputs in Media Foundation's order (the
+//                                  index OpenCV's MSMF backend opens) and DirectShow's (where OBS's virtual camera is)
 //
 // Exit codes (dogmute/audio.py reads them): 0 DogMute went away or the speakers changed, 2 that program isn't running or
 // that device is gone, 4 this Windows is too old to hear one program on its own, 1 anything else (stderr says what).
@@ -19,6 +22,9 @@
 #include <audioclient.h>
 #include <audiopolicy.h>
 #include <functiondiscoverykeys_devpkey.h>
+#include <mfapi.h>
+#include <mfidl.h>
+#include <dshow.h>
 #include <shellapi.h>
 #include <tlhelp32.h>
 #include <io.h>
@@ -44,6 +50,16 @@ typedef struct {
     union { AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS ProcessLoopbackParams; };
 } AUDIOCLIENT_ACTIVATION_PARAMS;
 #define VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK L"VAD\\Process_Loopback"
+#endif
+
+#ifdef _MSC_VER
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "oleaut32.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "version.lib")
+#pragma comment(lib, "mf.lib")
+#pragma comment(lib, "mfplat.lib")
+#pragma comment(lib, "strmiids.lib")
 #endif
 
 static const int RATE = 16000;
@@ -242,6 +258,70 @@ static int list() {
     out += "], \"devices\": [";
     for (size_t i = 0; i < devices.size(); i++) out += (i ? ", " : "") + json(devices[i]);
     out += "]}\n";
+    fwrite(out.data(), 1, out.size(), stdout);
+    return 0;
+}
+
+// ---- webcams ----
+
+static std::vector<std::wstring> mf_cameras() {
+    std::vector<std::wstring> out;
+    if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_LITE))) return out;
+    IMFAttributes* a = nullptr;
+    IMFActivate** devs = nullptr;
+    UINT32 n = 0;
+    if (SUCCEEDED(MFCreateAttributes(&a, 1))
+        && SUCCEEDED(a->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID))
+        && SUCCEEDED(MFEnumDeviceSources(a, &devs, &n))) {
+        for (UINT32 i = 0; i < n; i++) {
+            WCHAR* name = nullptr;
+            UINT32 len = 0;
+            if (SUCCEEDED(devs[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &name, &len))) {
+                out.push_back(name);
+                CoTaskMemFree(name);
+            } else {
+                out.push_back(L"?");
+            }
+            devs[i]->Release();
+        }
+        CoTaskMemFree(devs);
+    }
+    if (a) a->Release();
+    MFShutdown();
+    return out;
+}
+
+static std::vector<std::wstring> dshow_cameras() {
+    std::vector<std::wstring> out;
+    ICreateDevEnum* de = nullptr;
+    IEnumMoniker* em = nullptr;
+    if (FAILED(CoCreateInstance(CLSID_SystemDeviceEnum, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&de)))) return out;
+    if (de->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &em, 0) == S_OK) {
+        IMoniker* m = nullptr;
+        while (em->Next(1, &m, nullptr) == S_OK) {
+            IPropertyBag* bag = nullptr;
+            VARIANT v;
+            VariantInit(&v);
+            if (SUCCEEDED(m->BindToStorage(nullptr, nullptr, IID_PPV_ARGS(&bag)))) {
+                out.push_back(SUCCEEDED(bag->Read(L"FriendlyName", &v, nullptr)) && v.vt == VT_BSTR ? v.bstrVal : L"?");
+                VariantClear(&v);
+                bag->Release();
+            }
+            m->Release();
+        }
+        em->Release();
+    }
+    de->Release();
+    return out;
+}
+
+static int cameras() {
+    auto arr = [](const std::vector<std::wstring>& v) {
+        std::string s = "[";
+        for (size_t i = 0; i < v.size(); i++) s += (i ? ", " : "") + json(v[i]);
+        return s + "]";
+    };
+    std::string out = "{\"mf\": " + arr(mf_cameras()) + ", \"dshow\": " + arr(dshow_cameras()) + "}\n";
     fwrite(out.data(), 1, out.size(), stdout);
     return 0;
 }
@@ -495,9 +575,10 @@ int main() {
     if (FAILED(hr)) fail(1, "COM didn't start", hr);
     std::wstring cmd = argc > 1 ? argv[1] : L"";
     if (cmd == L"list") return list();
+    if (cmd == L"cameras") return cameras();
     if (cmd == L"app" && argc > 2) return app(argv[2]);
     if (cmd == L"pid" && argc > 2) return hear(wcstoul(argv[2], nullptr, 10), L"that process");
     if (cmd == L"all") return device(nullptr);
     if (cmd == L"device" && argc > 2) { std::wstring n = argv[2]; return device(&n); }
-    fail(2, "usage: dogmute-listen list | app <exe> | pid <n> | all | device <name>");
+    fail(2, "usage: dogmute-listen list | cameras | app <exe> | pid <n> | all | device <name>");
 }

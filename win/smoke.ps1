@@ -31,6 +31,12 @@ try {
     Post "config" @{ path = "audio.target"; value = "all" } | Out-Null
     Wait-For "hearing every app's sound" 60 { param($s) $s.audio -eq "listening" } | Out-Null
 
+    # the killfeed camera: this machine has no webcam, so it gets as far as looking for one (OpenCV and the virtual
+    # camera library load inside the installed app)
+    Post "config" @{ path = "camera.enabled"; value = $true } | Out-Null
+    Post "camera/test" @{ name = "Test" } | Out-Null
+    Wait-For "the killfeed camera looks for a webcam" 60 { param($s) $s.camera -eq "no webcam found" } | Out-Null
+
     $engine = (Get-CimInstance Win32_Process -Filter "Name = 'DogMute.exe'" | Where-Object CommandLine -like "*--engine*").ProcessId
     Post "restart" @{} | Out-Null
     Start-Sleep 3

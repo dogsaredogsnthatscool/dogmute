@@ -2,7 +2,7 @@
 # win\build.ps1 runs it (pyinstaller --noconfirm win\DogMute.spec) after building bin\dogmute-listen.exe.
 import os
 
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 
 ROOT = os.path.dirname(SPECPATH)
 
@@ -14,7 +14,7 @@ a = Analysis(
     datas=[(os.path.join(ROOT, "dogmute", "static"), os.path.join("dogmute", "static")),
            (os.path.join(ROOT, "dogmute", "data"), os.path.join("dogmute", "data"))]
           + collect_data_files("faster_whisper"),
-    hiddenimports=["dogmute.__main__", "dogmute.prefetch", "pystray._win32"],
+    hiddenimports=["dogmute.__main__", "dogmute.prefetch", "pystray._win32"] + collect_submodules("pyvirtualcam"),
     excludes=["tkinter", "matplotlib", "torch", "IPython", "pytest"],
 )
 pyz = PYZ(a.pure)

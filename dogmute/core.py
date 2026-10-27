@@ -19,6 +19,7 @@ from . import hook as hk
 from . import rpc as R
 from .audio import Capture, Ring
 from .diar import Diarizer
+from .killcam import Killcam
 from .review import DEFAULTS as REVIEW_DEFAULTS, Review
 from .rulebook import NOISE, Rulebook
 from .spam import FPS, FRAME, SpamRules
@@ -46,6 +47,7 @@ DEFAULTS = {
     "spam": {"enabled": True},   # watch for noise at all (the noise rules: rules.json)
     "review": REVIEW_DEFAULTS,   # see dogmute/review.py
     "stt": {"model": "large-v3-turbo", "threads": 4, "device": "auto"},
+    "camera": {"enabled": False, "device": ""},   # the killfeed camera (dogmute/killcam.py); "" = the default webcam
     "hook": {"enabled": False, "url": "", "clip": "", "key": "green", "hit_at": 0.0,   # see dogmute/hook.py
              "clip_dir": "", "clip_prefix": "", "sync_cmd": ""},
 }
@@ -55,7 +57,7 @@ TEST_WORD = "kangaroo"      # the setup wizard's harmless check word
 MODELS = ("tiny.en", "base.en", "small.en", "distil-large-v3", "large-v3-turbo")
 # every setting the page can change: path -> (type, min, max) or (type, choices)
 SCHEMA = {
-    "setup_done": (bool,), "audio.target": (str, None), "test_mode": (bool,), "auto_unmute_min": (int, 0, 1440), "notify": (bool,), "spare_bots": (bool,), "port": (int, 1024, 65535),
+    "setup_done": (bool,), "audio.target": (str, None), "camera.enabled": (bool,), "camera.device": (str, None), "test_mode": (bool,), "auto_unmute_min": (int, 0, 1440), "notify": (bool,), "spare_bots": (bool,), "port": (int, 1024, 65535),
     "slurs.enabled": (bool,), "spam.enabled": (bool,),
     "review.enabled": (bool,), "review.clips": (bool,), "review.notify": (bool,), "review.keep_days": (int, 1, 3650),
     "review.ask_timeout_s": (int, 5, 300), "review.max_per_min": (int, 1, 30),
@@ -143,6 +145,7 @@ class Core:
         self._learned = {}            # uid -> when we last learned their voice
         self._refresh_at = 0.0
         self.hook = hk.Hook(self)
+        self.killcam = Killcam(self)
         self.review = Review(self)
 
     # ---------- config ----------
@@ -475,6 +478,7 @@ class Core:
         print(f"{e['t']} {action} {name}: {reason}", flush=True)
         if action == "muted":
             self.hook.hit(name, reason)
+            self.killcam.fire(name, (self.me or {}).get("username", ""))
         if self.cfg["notify"] and action in ("muted", "would mute"):
             title = f"DogMute {'muted' if action == 'muted' else 'would mute'} {name}"
             if WIN:
@@ -700,7 +704,7 @@ class Core:
         return {"state": self.state, "me": (self.me or {}).get("username"), "channel": self.channel,
                 "people": people, "log": list(self.log)[-60:][::-1],
                 "test_mode": self.cfg["test_mode"], "auto_unmute_min": self.cfg["auto_unmute_min"],
-                "audio": self.capture.status, "stt": self.listener.status, "stt_ms": self.listener.latency_ms,
+                "audio": self.capture.status, "camera": self.killcam.status, "stt": self.listener.status, "stt_ms": self.listener.latency_ms,
                 "lag_ms": round(self.lag * 1000), "lag_n": len(self._lags),
                 "voices": self.voices.status, "voices_known": sum(self.voices.known(u) for u in self.members),
                 "friends": self.cfg["friends"], "has_creds": bool(self.creds.get("client_id")), "setup": self.setup_view(),
@@ -715,6 +719,7 @@ class Core:
         self.listener = Listener(self)
         self.capture.start()
         self.listener.start()
+        self.killcam.start()
         threading.Thread(target=self._learner, daemon=True).start()
         threading.Thread(target=self.diar.run, daemon=True).start()
         self.review.start()
