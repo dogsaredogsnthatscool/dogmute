@@ -19,7 +19,7 @@ from dogmute.review import Review  # noqa: E402
 from dogmute.spam import DEFAULTS, FPS, FRAME, SpamRules  # noqa: E402
 from dogmute.words import WordList  # noqa: E402
 
-T = 1000.0
+T = min(1000.0, time.monotonic() - 3600)   # well in the past (a fresh Windows machine's clock starts near 0)
 
 
 class Fake:

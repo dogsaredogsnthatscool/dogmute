@@ -47,7 +47,7 @@ def socket_dirs():
         dirs = [os.environ.get("TMPDIR", "")]
         try:
             dirs.append(os.confstr(65537))   # _CS_DARWIN_USER_TEMP_DIR: the same folder, for when TMPDIR isn't passed on
-        except (OSError, ValueError):
+        except (OSError, ValueError, AttributeError):
             pass
         return [d.rstrip("/") for d in dirs if d] + ["/tmp"]
     run = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
