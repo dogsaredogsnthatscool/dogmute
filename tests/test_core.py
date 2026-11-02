@@ -1,7 +1,9 @@
 """Who counts as talking (members only, people who leave or mute stop), the audio/speaking-event lag, and the ring's
 clock across stalls. No Discord, no whisper: events go straight into Core.on_event, audio into Core.on_block."""
+import io
 import os
 import tempfile
+import types
 
 import numpy as np
 import pytest
@@ -10,7 +12,7 @@ tmp = tempfile.mkdtemp()
 os.environ.setdefault("DOGMUTE_CONFIG", tmp + "/c")
 os.environ.setdefault("DOGMUTE_STATE", tmp + "/s")
 from dogmute import core as C  # noqa: E402
-from dogmute.audio import RATE, Ring  # noqa: E402
+from dogmute.audio import BLOCK, RATE, Capture, Ring  # noqa: E402
 from dogmute.spam import DEFAULTS, FPS, FRAME, SpamRules  # noqa: E402
 
 
@@ -149,3 +151,31 @@ def test_every_hit_mutes_even_right_after_an_unmute(core):
         await core._act("A", 'said "k*******"', "word")
     asyncio.run(go())
     assert sent == [("A", True), ("B", True), ("A", True)]
+
+
+def test_someone_starting_mid_frame_does_not_stop_the_listening(core):
+    """The gateway thread clears a talker's rows on SPEAKING_START, it can land between frame() and the level read."""
+    core.ring.push(np.zeros(RATE, np.float32), 1000.0)
+    ev(core, "SPEAKING_START", 1000.0, "A")
+    real = core.rules.frame
+
+    def frame(on, x, t):
+        out = real(on, x, t)
+        core.rules.who["A"].rows.clear()
+        return out
+    core.rules.frame = frame
+    core.on_block(0.3 * np.ones(FRAME, np.float32), 1001.0)
+    assert "A" in core.levels
+
+
+def test_capture_survives_a_bad_block():
+    got = []
+
+    def on_block(x, now):
+        got.append(len(x))
+        if len(got) == 1:
+            raise IndexError("bad block")
+    c = Capture(on_block)
+    c.proc = types.SimpleNamespace(stdout=io.BytesIO(bytes(BLOCK * 4 * 3)))
+    c._read()
+    assert len(got) == 3
