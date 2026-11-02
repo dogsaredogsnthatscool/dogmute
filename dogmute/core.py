@@ -248,9 +248,10 @@ class Core:
             for u, why in self.rules.pop_close():                # nearly a mic-spam rule: ask
                 if self.review.on and self._askable(u):
                     self.review.ask_spam(u, why, t)
+            lv = rules.mix[-1][0]                                # not their rows: the gateway thread can clear those
             if uid:
-                self.levels[uid] = round(rules.who[uid].rows[-1][1], 1)
-            self._onset(t, rules.mix[-1][0])
+                self.levels[uid] = round(lv, 1)
+            self._onset(t, lv)
 
     def _onset(self, t, lv):
         """Lag samples: a SPEAKING_START out of silence (nobody else on) against the moment the mix got loud."""

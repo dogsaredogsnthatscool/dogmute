@@ -7,6 +7,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -229,7 +230,10 @@ class Capture(threading.Thread):
             if len(pending) == need:
                 if first:
                     self.status, first = first, None
-                self.on_block(np.frombuffer(pending, np.float32), time.monotonic())
+                try:
+                    self.on_block(np.frombuffer(pending, np.float32), time.monotonic())
+                except Exception:                  # one bad block must never end the listening for good
+                    traceback.print_exc()
                 pending = b""
 
     def run(self):

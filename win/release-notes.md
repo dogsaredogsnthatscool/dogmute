@@ -5,5 +5,6 @@
 - Windows may say "Windows protected your PC" because the installer isn't code-signed: click **More info → Run anyway**.
 - Killfeed camera: each mute plays a quickscope over your webcam, drawn on your own PC (needs OBS Studio installed for its virtual camera).
 - Got an NVIDIA graphics card? Tick the box in the installer for the accurate speech model (a 1.2 GB download).
+- Fixed in v1.1.1: DogMute could silently stop listening mid-call while the page still said it was. Update if it has gone quiet on you.
 
 See the [README](https://github.com/dogsaredogsnthatscool/dogmute#on-windows) for setup and troubleshooting.
