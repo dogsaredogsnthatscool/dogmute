@@ -82,8 +82,44 @@ def test_linux_skips_loopback_devices(tmp_path, monkeypatch):
 
 def test_windows_never_films_a_virtual_camera(monkeypatch):
     monkeypatch.setattr(sys, "platform", "win32")
-    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": ["OBS Virtual Camera", "Integrated Webcam", "Logi C920"]})
-    assert [c["key"] for c in K.cameras()] == ["Integrated Webcam", "Logi C920"]
+    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": ["OBS Virtual Camera", "Integrated Webcam", "Logi C920"],
+                                                        "dshow": ["Logi C920", "OBS Virtual Camera", "DroidCam Source 3"]})
+    assert [c["key"] for c in K.cameras()] == ["Integrated Webcam", "Logi C920", "DroidCam Source 3"]
+
+
+class Opened:
+    def __init__(self, *args):
+        self.args = args
+
+    def isOpened(self):
+        return True
+
+    def set(self, *a):
+        pass
+
+
+@pytest.mark.parametrize("device, mf, dshow, want", [
+    ("DroidCam Source 3", ["Integrated Webcam"], ["Integrated Webcam", "OBS Virtual Camera", "DroidCam Source 3"],
+     (2, "CAP_DSHOW")),                                        # only DirectShow has it: opened there, by its index
+    ("Logi C920", ["Integrated Webcam", "Logi C920"], ["Logi C920", "Integrated Webcam"], (1, "CAP_MSMF")),
+    ("", ["OBS Virtual Camera"], ["OBS Virtual Camera", "NVIDIA Broadcast"], (1, "CAP_DSHOW")),   # default: never OBS's
+])
+def test_windows_opens_any_video_source(monkeypatch, device, mf, dshow, want):
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": mf, "dshow": dshow})
+    monkeypatch.setattr(cv2, "VideoCapture", Opened)
+    cap, label = K.open_webcam(device)
+    assert cap.args == (want[0], getattr(cv2, want[1]))
+    assert label == (device or "NVIDIA Broadcast")
+
+
+def test_windows_says_when_there_is_no_camera(monkeypatch):
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": ["OBS Virtual Camera"], "dshow": ["OBS Virtual Camera"]})
+    with pytest.raises(RuntimeError, match="no webcam found"):
+        K.open_webcam("")
+    with pytest.raises(RuntimeError, match="that webcam is gone"):
+        K.open_webcam("DroidCam Source 3")
 
 
 def fake_core(enabled=True, clip=""):

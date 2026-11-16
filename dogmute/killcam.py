@@ -2,7 +2,9 @@
 camera that Discord (or any app) can pick. Everything is drawn on this computer. The webcam is only open while you're
 in a voice channel, or for a few seconds after Try it.
 
-  in:  the default webcam, or the one picked in Settings (virtual cameras are never picked, so it can't film itself)
+  in:  the default webcam, or the one picked in Settings: on Windows any camera Media Foundation or DirectShow lists
+       (webcams, phone-camera apps, capture cards, effect cameras like NVIDIA Broadcast). Virtual cameras we write
+       to are never picked, so it can't film itself
   out: OBS Studio's virtual camera on Windows and macOS (install OBS once; it doesn't have to run), or on Linux a
        v4l2loopback device labelled "DogMute camera" (never another app's loopback)
 
@@ -311,7 +313,8 @@ def _virtual(name):
 def cameras():
     """Webcams that can be picked: [{"key", "label"}]; key is what camera.device stores ("" = the default one)."""
     if sys.platform == "win32":
-        return [{"key": n, "label": n} for n in _helper_cameras().get("mf", []) if not _virtual(n)]
+        c = _helper_cameras()                                  # Media Foundation's, then the DirectShow-only ones
+        return [{"key": n, "label": n} for n in dict.fromkeys(c.get("mf", []) + c.get("dshow", [])) if not _virtual(n)]
     if sys.platform == "linux":
         return [{"key": p, "label": f"{n} ({p})"} for p, n in _linux_cameras() if not _virtual(n)]
     return []
@@ -321,12 +324,15 @@ def open_webcam(device):
     """(cv2.VideoCapture, label) for camera.device; raises RuntimeError worded for the page."""
     import cv2
     if sys.platform == "win32":
-        names = _helper_cameras().get("mf")                    # None: the helper couldn't say, so try the first one
-        pick = [i for i, n in enumerate(names or []) if (n == device if device else not _virtual(n))]
-        if names is not None and not pick:
+        c = _helper_cameras()
+        mf, ds = c.get("mf"), c.get("dshow")
+        ok = (lambda n: n == device) if device else (lambda n: not _virtual(n))
+        # Media Foundation first; many phone-camera apps, capture cards and effect cameras only register with DirectShow
+        pick = [((i, cv2.CAP_MSMF), n) for i, n in enumerate(mf or []) if ok(n)] \
+            + [((i, cv2.CAP_DSHOW), n) for i, n in enumerate(ds or []) if ok(n)]
+        if not pick and (mf is not None or ds is not None):
             raise RuntimeError("that webcam is gone" if device else "no webcam found")
-        i = pick[0] if pick else 0
-        args, label = (i, cv2.CAP_MSMF), names[i] if names else "the webcam"
+        args, label = pick[0] if pick else ((0, cv2.CAP_MSMF), "the webcam")   # the helper couldn't say: the first one
     elif sys.platform == "linux":
         cams = [(p, n) for p, n in _linux_cameras() if (p == device if device else not _virtual(n))]
         if not cams:
