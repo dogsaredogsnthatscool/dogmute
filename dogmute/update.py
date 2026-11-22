@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import ssl
 import subprocess
 import sys
 import threading
@@ -49,9 +50,19 @@ def newer(latest, cur):
     return bool(a and b and a > b)
 
 
+def _tls():
+    """certifi's list of certificate authorities: a fresh Windows only has the roots it has needed so far, and Python
+    can't fetch the missing ones the way Windows does (CERTIFICATE_VERIFY_FAILED on api.github.com)."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except (ImportError, OSError, ssl.SSLError):
+        return None
+
+
 def _get(url, timeout=15):
     req = urllib.request.Request(url, headers={"User-Agent": "DogMute-updater", "Accept": "application/vnd.github+json"})
-    return urllib.request.urlopen(req, timeout=timeout)
+    return urllib.request.urlopen(req, timeout=timeout, context=_tls() if url.startswith("https:") else None)
 
 
 def latest():
