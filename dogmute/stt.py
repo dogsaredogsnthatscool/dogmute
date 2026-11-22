@@ -82,7 +82,7 @@ class Listener(threading.Thread):
         from faster_whisper import WhisperModel
         c = self.core.cfg["stt"]
         self.loaded = (c["model"], c["threads"], c["device"])
-        self.name = c["model"]   # what actually runs (the CPU swaps the big model for base.en)
+        self.name = c["model"]   # what actually runs (the CPU swaps the big models for small.en)
         self.mlx = None
         self.status = f"loading {c['model']}"
         if c["device"] != "cpu" and apple_gpu():
@@ -105,7 +105,7 @@ class Listener(threading.Thread):
                 return
         except Exception as e:  # noqa: BLE001  (no GPU / out of memory: the CPU instead)
             print("stt: GPU failed, using the CPU:", e, flush=True)
-        name = self.name = c["model"] if c["model"].endswith(".en") else "base.en"   # the big model is too slow on a CPU
+        name = self.name = c["model"] if c["model"].endswith(".en") else "small.en"   # the big models are too slow on a CPU
         self.model = WhisperModel(name, device="cpu", compute_type="int8", cpu_threads=c["threads"])
         self.beam = 1
         self.status = f"ready ({name}, CPU)"

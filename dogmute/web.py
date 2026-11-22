@@ -10,7 +10,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 STATIC = Path(__file__).resolve().parent / "static"
-TYPES = {".html": "text/html; charset=utf-8", ".png": "image/png", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml"}
+TYPES = {".html": "text/html; charset=utf-8", ".png": "image/png", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml",
+         ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm", ".mkv": "video/x-matroska",
+         ".gif": "image/gif"}
 
 
 def serve(core):
@@ -44,6 +46,15 @@ def serve(core):
                 return self._send(200, f.read_bytes(), "audio/wav") if f else self._send(404, {"error": "no clip"})
             if path == "/api/rules":
                 return self._send(200, core.book.view())
+            if path == "/api/overlay":   # the OBS overlay page polls this
+                return self._send(200, core.overlay_view())
+            if path == "/api/overlay/clip":   # your own clip when one is picked, else the built-in quickscope
+                from .hook import clips
+                h = core.cfg["hook"]
+                f = Path(h["clip_dir"]).expanduser() / h["clip"] if h.get("clip") and h["clip"] in clips(h) else STATIC / "quickscope.mp4"
+                return self._send(200, f.read_bytes(), TYPES.get(f.suffix.lower(), "application/octet-stream"))
+            if path == "/obs":
+                path = "/obs.html"
             if path == "/api/audio":
                 from .audio import streams
                 return self._send(200, {"streams": [{k: s[k] for k in ("key", "label", "discord")} for s in streams()],
@@ -116,8 +127,27 @@ def serve(core):
             elif path == "/api/hook/test":
                 core.hook.hit(d.get("name") or "Test", "test")
             elif path == "/api/camera/test":   # the killfeed camera's moment now (and the camera on for a while outside a call)
+                core.fire_overlay(d.get("name") or "Test")
                 return {"fired": core.killcam.fire(d.get("name") or "Test", (core.me or {}).get("username", "") or "you",
-                                                    test=True)}
+                                                    test=True) or core.obs[0] in ("added", "there")}
+            elif path == "/api/overlay/test":   # only the OBS overlay
+                core.fire_overlay(d.get("name") or "Test")
+            elif path == "/api/obs/add":   # add the overlay to OBS now (OBS closed), also after it was deleted there
+                from . import obs as O
+                core.cfg["obs"]["auto"] = True
+                state, msg, added = O.setup(core.cfg["port"])
+                if added:
+                    core.cfg["obs"]["added"] = sorted(set(core.cfg["obs"]["added"]) | set(added))
+                    core.cfg["camera"]["enabled"] = False
+                core.save_cfg()
+                core.obs = (state, msg)
+                return {"state": state, "msg": msg}
+            elif path == "/api/update/check":
+                core.updates.wake.set()
+            elif path == "/api/update/now":   # Windows: download, check and install the new version now
+                if not core.updates.view()["can_patch"]:
+                    raise ValueError("this one can't patch itself: use the release page")
+                threading.Thread(target=core.updates.patch_now, daemon=True).start()
             elif path == "/api/restart":
                 threading.Timer(0.3, lambda: os._exit(0)).start()  # systemd (Linux), launchd (macOS) or the tray (Windows) starts us again
             elif path == "/api/privacy" and sys.platform == "darwin":   # macOS: the Privacy & Security page to allow capture

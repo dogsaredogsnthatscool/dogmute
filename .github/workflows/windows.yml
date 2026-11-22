@@ -5,6 +5,8 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      version: {description: "Version written into the build (e.g. 1.2.0); empty = 0.0.0, which never self-updates", required: false, default: ""}
 permissions:
   contents: write
 jobs:
@@ -44,8 +46,9 @@ jobs:
       - name: Inno Setup
         run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
       - name: Build
+        env: {IN_VERSION: "${{ inputs.version }}"}
         run: |
-          $v = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME.TrimStart("v") } else { "0.0.0" }
+          $v = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME.TrimStart("v") } elseif ($env:IN_VERSION) { $env:IN_VERSION } else { "0.0.0" }
           win\build.ps1 -Version $v -Python python
       - name: Install, run, uninstall
         run: win\smoke.ps1
