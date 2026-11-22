@@ -93,8 +93,10 @@ begin
   // DogMute is already installed and someone opened the new DogMute-Setup.exe: no questions, just update it.
   // This copy starts the same file again silently (only a progress bar, the choices made last time are kept) and leaves.
   if (RegKeyExists(HKCU, UninstKey) or RegKeyExists(HKLM, UninstKey)) and not WizardSilent then
-    if Exec(ExpandConstant('{srcexe}'), '/SILENT /SUPPRESSMSGBOXES /NORESTART /BYHAND=1', '', SW_SHOW, ewNoWait, Code) then
-      Result := False;
+    if ShellExec('', ExpandConstant('{srcexe}'), '/SILENT /SUPPRESSMSGBOXES /NORESTART /BYHAND=1', '', SW_SHOW, ewNoWait, Code) then
+      Result := False
+    else
+      Log('starting the update silently failed (' + SysErrorMessage(Code) + '): showing the wizard instead');
 end;
 
 function HasObs: Boolean;
