@@ -14,7 +14,11 @@ function Post($path, $body) {
     Invoke-RestMethod -Method Post "$api/$path" -ContentType "application/json" -Body ($body | ConvertTo-Json -Compress)
 }
 try {
-    Start-Process dist\DogMute-Setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=setup.log" -Wait
+    # a silent install starts DogMute itself (like a self-update does), and Start-Process -Wait would wait for it too:
+    # wait for the installer alone
+    $setup = Start-Process dist\DogMute-Setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=setup.log" -PassThru
+    $setup.WaitForExit()
+    if ($setup.ExitCode -ne 0) { throw "setup failed: exit $($setup.ExitCode)" }
     if (-not (Test-Path "$app\DogMute.exe")) { throw "not installed" }
     if (-not (Test-Path "$app\_internal\bin\dogmute-listen.exe")) { throw "the sound helper wasn't installed" }
     $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").DogMute

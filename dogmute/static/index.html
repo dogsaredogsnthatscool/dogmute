@@ -167,6 +167,9 @@
   <span id="status" class="grow" role="status">Starting…</span>
   <button id="test" class="btn ghost" type="button" aria-pressed="false" title="Test mode: log what would be muted, mute nobody">Test mode</button>
 </header>
+<div id="upd" class="upd" role="status" hidden><span id="updMsg" class="grow"></span>
+  <button id="updNow" class="btn hot" type="button" hidden>Install now</button>
+  <a id="updPage" class="btn ghost" target="_blank" rel="noopener" hidden>What's new</a></div>
 
 <section id="wizard" class="win" hidden>
   <div class="wt"><span class="grow">Set up DogMute</span><span class="count" id="wzCount"></span></div>
@@ -181,8 +184,10 @@
             <li><a class="btn ghost" href="https://discord.com/developers/applications" target="_blank" rel="noopener">Open the Discord Developer Portal</a> and log in if it asks.</li>
             <li>Click <b>New Application</b> (top right). Name it <b>DogMute</b>, tick the box, click <b>Create</b>.</li>
             <li>In the menu on the left, click <b>OAuth2</b>.</li>
-            <li>Scroll to <b>Redirects</b>, click <b>Add Redirect</b> and paste <code>http://localhost</code>
-              <button class="btn ghost mini-btn" type="button" data-copy="http://localhost">Copy</button>.
+            <li>Click this <button class="btn ghost mini-btn" type="button" data-copy="http://localhost">Copy</button> button
+              (it copies <code>http://localhost</code>).</li>
+            <li>On Discord's page, scroll to <b>Redirects</b> and click <b>Add Redirect</b>. Click in the empty box that
+              appears and paste (<kbd>Ctrl</kbd>+<kbd>V</kbd>, on a Mac <kbd>⌘</kbd>+<kbd>V</kbd>).
               Then click <b>Save Changes</b> in the bar at the bottom.</li>
           </ol>
           <div class="row"><button class="btn hot" type="button" id="wz1Next">I've made it</button></div>
@@ -193,8 +198,10 @@
         <div class="wz-body">
           <p>Still on the <b>OAuth2</b> page:</p>
           <ol class="wz-do">
-            <li>Under <b>Client ID</b>, click <b>Copy</b> and paste it below.</li>
-            <li>Under <b>Client Secret</b>, click <b>Reset Secret</b>, then <b>Yes, do it!</b>, then <b>Copy</b>, and paste it below.</li>
+            <li>On Discord's page, under <b>Client ID</b>, click <b>Copy</b>. Come back to this page, click in the
+              <b>Client ID</b> box below and paste (<kbd>Ctrl</kbd>+<kbd>V</kbd>).</li>
+            <li>On Discord's page, under <b>Client Secret</b>, click <b>Reset Secret</b>, then <b>Yes, do it!</b>, then
+              <b>Copy</b>. Come back here, click in the <b>Client secret</b> box below and paste.</li>
           </ol>
           <form id="wz2Form" autocomplete="off">
             <label class="field"><span class="mini">Client ID</span><input id="cid" type="text" inputmode="numeric" spellcheck="false" placeholder="a long number" required></label>
@@ -328,7 +335,7 @@
         <legend>Words</legend>
         <div class="set"><label for="s-words-on">Listen for words<small>Turn off to only watch for noise.</small></label>
           <span class="ctl"><input id="s-words-on" type="checkbox" data-path="slurs.enabled"></span></div>
-        <div class="set"><label for="s-model">Speech model<small>large-v3-turbo: the most accurate, needs the GPU (about 0.6 s a pass). tiny / base / small: smaller, for the CPU; tiny misses the most.</small></label>
+        <div class="set"><label for="s-model">Speech model<small>small: the default, runs on any computer. large-v3-turbo: catches the most, needs an NVIDIA GPU (about 0.6 s a pass). tiny / base: lighter for slow computers; tiny misses the most.</small></label>
           <span class="ctl"><select id="s-model" data-path="stt.model"></select></span></div>
         <div class="set"><label for="s-device">Run on<small>Auto uses the graphics card when there is one.</small></label>
           <span class="ctl"><select id="s-device" data-path="stt.device"><option value="auto">auto</option><option value="gpu">graphics card</option><option value="cpu">CPU</option></select></span></div>
@@ -347,15 +354,39 @@
       </fieldset>
 
       <fieldset>
+        <legend>OBS overlay</legend>
+        <p class="hint">Each mute plays the quickscope (green screen keyed out) over your OBS scene, so it shows on your
+          webcam in Discord. DogMute puts it in OBS for you while OBS is closed.</p>
+        <p class="hint" id="obsState" role="status"></p>
+        <div class="set"><label for="s-obs-auto">Add it to OBS automatically<small>Once per scene collection. If you delete it in OBS, it stays deleted.</small></label>
+          <span class="ctl"><input id="s-obs-auto" type="checkbox" data-path="obs.auto"></span></div>
+        <ol class="wz-do">
+          <li>In OBS, click <b>Start Virtual Camera</b> (the <b>Controls</b> box, bottom right).</li>
+          <li>In Discord: <b>User Settings</b> (the gear) → <b>Voice &amp; Video</b> → <b>Camera</b> → pick <b>OBS Virtual Camera</b>.</li>
+        </ol>
+        <details class="obs-hand"><summary>Add it to OBS by hand</summary>
+          <ol class="wz-do">
+            <li>Click <button class="btn ghost mini-btn" type="button" id="obsCopy" data-copy="">Copy</button> (it copies <code id="obsUrl"></code>).</li>
+            <li>In OBS, in the <b>Sources</b> box at the bottom, click <b>+</b> → <b>Browser</b> → <b>OK</b>.</li>
+            <li>In the window that opens, click in the <b>URL</b> box, select what's there and paste (<kbd>Ctrl</kbd>+<kbd>V</kbd>).
+              Set <b>Width</b> and <b>Height</b> to your canvas (OBS <b>Settings</b> → <b>Video</b> → <b>Base Resolution</b>, usually 1920 and 1080), then click <b>OK</b>.</li>
+            <li>In <b>Sources</b>, drag <b>Browser</b> to the top of the list, so it's drawn over your webcam.</li>
+          </ol></details>
+        <div class="row foot"><button id="obsAdd" class="btn ghost" type="button">Add to OBS now</button>
+          <span id="obsMsg" class="hint-inline msg"></span><span class="grow"></span>
+          <button id="obsTest" class="btn" type="button">Try it</button></div>
+      </fieldset>
+
+      <fieldset>
         <legend>Killfeed camera</legend>
-        <div class="set"><label for="s-cam-on">Quickscope on my camera<small>Each mute plays a quickscope over your webcam: scope in, the shot, a hitmarker, their name in the killfeed. It's drawn on this computer. In Discord, pick <b>OBS Virtual Camera</b> as your camera (Linux: <b>DogMute camera</b>).</small></label>
+        <div class="set"><label for="s-cam-on">Quickscope on my camera<small>DogMute films your webcam itself and draws the quickscope on it, without OBS's scenes. Leave it off when you use the OBS overlay: OBS already has your webcam. In Discord, pick <b>OBS Virtual Camera</b> (Linux: <b>DogMute camera</b>).</small></label>
           <span class="ctl"><input id="s-cam-on" type="checkbox" data-path="camera.enabled"></span></div>
         <div class="set"><label for="s-cam-dev">Webcam<small>The one it films. It's only on while you're in a voice channel.</small></label>
           <span class="ctl"><select id="s-cam-dev" data-path="camera.device"></select></span></div>
         <p class="hint" id="camState" role="status" hidden></p>
         <div class="set"><label for="s-hk-dir">Clip folder<small>Your own videos, to play instead of the built-in quickscope. Leave empty for the built-in one.</small></label>
           <span class="ctl"><input id="s-hk-dir" type="text" spellcheck="false" placeholder="~/Videos/killfeed" data-path="hook.clip_dir"></span></div>
-        <div class="set needs-dir"><label for="s-hk-clip">Clip<small>None: the built-in quickscope.</small></label>
+        <div class="set needs-dir"><label for="s-hk-clip">Clip<small>None: the built-in quickscope (in OBS, the quickscope video on a green screen).</small></label>
           <span class="ctl"><select id="s-hk-clip" data-path="hook.clip"></select></span></div>
         <div class="set needs-dir"><label for="s-hk-key">Clip background<small>Green: green screen drops out. Black: black drops out. Full: the clip covers the picture.</small></label>
           <span class="ctl"><select id="s-hk-key" data-path="hook.key"><option value="green">green screen</option><option value="screen">black</option><option value="full">full</option></select></span></div>
@@ -408,6 +439,10 @@
         <legend>DogMute</legend>
         <div class="set"><label for="s-port">Page port<small>This page's address. Takes effect after a restart.</small></label>
           <span class="ctl"><input id="s-port" type="number" step="1" data-path="port"></span></div>
+        <div class="set"><label for="s-upd">Check for updates<small>Asks GitHub for the newest version every 6 hours. Nothing about you is sent. <span id="verNow"></span></small></label>
+          <span class="ctl"><input id="s-upd" type="checkbox" data-path="updates.check"></span></div>
+        <div class="set win-only"><label for="s-upd-auto">Install updates by itself<small>Downloads the new version, checks it, and installs it when you're not in a call. Your settings stay. DogMute restarts by itself.</small></label>
+          <span class="ctl"><input id="s-upd-auto" type="checkbox" data-path="updates.auto"></span></div>
         <div class="row foot"><button id="rerunSetup" class="btn ghost" type="button">Run setup again</button><span id="restartMsg" class="hint-inline msg"></span><span class="grow"></span><button id="restart" class="btn ghost" type="button">Restart DogMute</button></div>
       </fieldset>
     </div>
@@ -566,6 +601,27 @@ function render(s) {
   $("camState").hidden = cam === "off";
   $("camState").textContent = camBad ? `Camera: ${cam}` : cam.startsWith("on: waits") ? "Camera: on, it starts when you join a voice channel." : `Camera: ${cam.replace(/^on: /, "on, ")}`;
   $("camState").className = camBad ? "hint bad" : "hint";
+  const u = s.update || {}, busy = /^(downloading|installing)/.test(u.status || "");
+  $("upd").hidden = !u.new;
+  if (u.new) {
+    const v = `DogMute ${u.new.version}`;
+    $("updMsg").textContent = busy ? `${v}: ${u.status.replace(/ [\d.]+$/, "")}…`
+      : /didn't|couldn't/.test(u.status) ? `${v} is out, but the ${u.status}. Get it from the release page.`
+      : u.auto && u.can_patch ? `${v} is out. It installs itself when you're not in a call.`
+      : u.can_patch ? `${v} is out.`
+      : s.platform === "windows" ? `${v} is out. Download DogMute-Setup.exe from the release page and run it.`
+      : `${v} is out. In a terminal, in your DogMute folder, run: git pull && ./install.sh`;
+    $("updNow").hidden = !u.can_patch || busy;
+    $("updPage").hidden = !u.new.page;
+    if (u.new.page) $("updPage").href = u.new.page;
+  }
+  $("verNow").textContent = u.version ? `This is version ${u.version}.` : "";
+  document.querySelectorAll(".win-only").forEach((e) => { e.hidden = s.platform !== "windows"; });
+  const o = s.obs || {};
+  $("obsState").textContent = o.msg || (o.state === "off" ? "Not added by itself: tick the box, or add it by hand below." : "Looking for OBS…");
+  $("obsState").className = o.state === "error" ? "hint bad" : "hint";
+  $("obsUrl").textContent = o.url || "";
+  $("obsCopy").dataset.copy = o.url || "";
   $("foot").textContent = `Audio: ${s.audio} · Speech: ${s.stt}${s.stt_ms != null ? ` (${s.stt_ms} ms a pass)` : ""} · Voices: ${s.voices}${s.voices === "ready" ? ` (${s.voices_known} known)` : ""}${s.hook !== "off" ? ` · Overlay: ${s.hook}` : ""}${s.me ? ` · You: ${s.me}` : ""}`;
 }
 
@@ -603,6 +659,9 @@ document.addEventListener("click", async (ev) => {
     else if (b.id === "wz5Go") await post("/api/setup/test", { on: !S?.setup.test.on });
     else if (b.id === "wzFinish" || b.id === "wzSkip") await post("/api/setup/done", { done: true });
     else if (b.id === "rerunSetup") { await post("/api/setup/done", { done: false }); window.scrollTo(0, 0); }
+    else if (b.id === "obsAdd") { $("obsMsg").textContent = (await post("/api/obs/add", {})).msg || ""; }
+    else if (b.id === "obsTest") { await post("/api/overlay/test", { name: "Test" }); $("obsMsg").textContent = "Sent to OBS: it plays there if the overlay is in your scene."; }
+    else if (b.id === "updNow") { b.hidden = true; await post("/api/update/now", {}); }
     else if (b.id === "hkTest") { await post("/api/hook/test", { name: "Test" }); $("hkMsg").textContent = "Sent."; }
     else if (b.id === "camTest") {
       const j = await post("/api/camera/test", { name: "Test" });

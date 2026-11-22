@@ -21,6 +21,7 @@ Run $py @("-m", "pip", "install", "-q", "-r", "requirements.txt", "pyinstaller==
 Run $py @("-c", "from PIL import Image; Image.open('dogmute/static/icon.png').save('build/icon.ico', sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])")
 
 Write-Host "3/4 DogMute.exe"
+Set-Content -Encoding ascii dogmute\_version.py "VERSION = `"$Version`"   # written by win\build.ps1; the updater compares it"
 Run $py @("-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", "dist", "--workpath", "build\pyi", "win\DogMute.spec")
 
 Write-Host "4/4 installer"

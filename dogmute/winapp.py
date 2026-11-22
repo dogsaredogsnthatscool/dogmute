@@ -75,6 +75,10 @@ def open_when_up():
 
 
 def main():
+    if "--obs-setup" in sys.argv:   # the installer: the overlay in OBS (dogmute/obs.py)
+        from .obs import main as obs_setup
+        obs_setup(sys.argv)
+        return
     if "--engine" in sys.argv:
         from .__main__ import main as engine
         return engine()
