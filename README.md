@@ -47,11 +47,20 @@ Windows 10 version 2004 or newer, or Windows 11 (64-bit). No admin rights, no Py
    and run it. The installer isn't code-signed, so Windows may say *"Windows protected your PC"*: click
    **More info → Run anyway**.
 3. Got an NVIDIA graphics card? Leave **Use my NVIDIA graphics card** ticked: it downloads NVIDIA's speech libraries once
-   (about 1.2 GB) for the accurate `large-v3-turbo` model. Without it, speech runs on the processor with `base.en`.
+   (about 1.2 GB), so speech runs on the card and you can pick the most accurate model, `large-v3-turbo`, under
+   **Settings → Words → Speech model**. The default model is `small.en`, which runs on any computer.
+   Got OBS Studio? Leave **Add the quickscope overlay to OBS Studio** ticked (see [OBS overlay](#obs-overlay)).
 4. The page opens in its own window. Follow the 5 steps. DogMute sits in the tray (by the clock): click its icon to
    open the page again, right-click it to restart or quit. It starts by itself when you sign in.
 
-Want a quickscope on your camera each time someone gets muted? See [Killfeed camera](#killfeed-camera).
+Want a quickscope on your camera each time someone gets muted? See [OBS overlay](#obs-overlay).
+
+**Updates install themselves on Windows.** Every 6 hours DogMute asks GitHub whether there is a newer release. If there is,
+you get a notification and a bar at the top of the page. Once you're not in a voice call, DogMute downloads the new
+`DogMute-Setup.exe`, checks it against the SHA-256 GitHub lists for it, installs it silently and restarts. Your settings,
+words and models stay, and the graphics card files aren't downloaded again. **Install now** on the bar does it right
+away. To only be told, untick **Settings → DogMute → Install updates by itself**. On Linux and macOS the bar shows the
+command to run (`git pull && ./install.sh` in your DogMute folder).
 
 DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
 *Application Audio Capture*). Other apps, games and your microphone are never heard.
@@ -108,7 +117,9 @@ Every rule and limit can be changed, turned off, deleted or added to on the page
   the word starred out (`said "k*******"`). The service log (the systemd journal, or `~/Library/Logs/dogmute.log` on
   macOS, `%LOCALAPPDATA%\DogMute\dogmute.log` on Windows) holds the same mute lines and errors, never what people said.
 - Nothing is sent anywhere. The exceptions are Discord's own OAuth token endpoint (once, to log your app in), the
-  one-time model downloads from Hugging Face, and the addresses you give **Send mutes to another app** if you switch it on.
+  one-time model downloads from Hugging Face, the update check (a request to GitHub's releases API every 6 hours, and the
+  installer download on Windows; turn it off under **Settings → DogMute → Check for updates**), and the addresses you
+  give **Send mutes to another app** if you switch it on.
 - The killfeed camera's pictures go only to the virtual camera on this computer. Nothing is recorded.
 
 Recording other people without their consent is illegal in some places (California, for example). DogMute never
@@ -125,7 +136,7 @@ records.
   macOS 14+, for the big speech model. Without one it runs on the CPU with a smaller model.
 - Optional: `python3-gi` + WebKit2GTK 4.1 for the app window (otherwise use a browser), `notify-send` for pop-ups,
   `espeak-ng` for the full test suite.
-- Disk: about 1.6 GB for models on the GPU setup (large-v3-turbo), about 200 MB on CPU only. They are downloaded on
+- Disk: about 600 MB for the default models (small.en and voice matching), about 1.6 GB more on the GPU setup if you pick large-v3-turbo. They are downloaded on
   first start into `~/.cache/huggingface`.
 
 ## Install
@@ -251,6 +262,30 @@ Everything else is under **Settings**, saved in `~/.config/dogmute/config.json` 
 - **Killfeed camera** and **Send mutes to another app** (below), **Review queue**, **Friends**, and the **page port**
   (needs a restart, a button on the page).
 
+### OBS overlay
+
+The easy way to get the quickscope on your webcam in Discord. OBS keeps your webcam, and DogMute adds a **Browser**
+source called **DogMute overlay** on top of every scene. Each mute plays the quickscope video with its green screen keyed
+out, plus the hitmarker, "+100" and a killfeed line with the muted person's name.
+
+1. **Install OBS Studio** (free, [obsproject.com](https://obsproject.com)) and open it once, so it has a scene with your webcam.
+2. **Close OBS.** The Windows installer adds the overlay (leave **Add the quickscope overlay to OBS Studio** ticked).
+   DogMute also adds it on its own whenever OBS is closed. OBS rewrites its scene files when it closes, so DogMute only
+   edits them while OBS is closed. It keeps a copy next to the original (`<collection>.json.dogmute-bak`).
+3. **Open OBS and click Start Virtual Camera** (the **Controls** box, bottom right).
+4. **In Discord:** **User Settings** (the gear) → **Voice & Video** → **Camera** → pick **OBS Virtual Camera**.
+5. **Try it:** **Settings → OBS overlay → Try it** plays one in OBS.
+
+To add it by hand: click **Copy** under **Settings → OBS overlay → Add it to OBS by hand**. In OBS, in the **Sources** box
+at the bottom, click **+** → **Browser** → **OK**. Click in the **URL** box, select what's there and paste
+(<kbd>Ctrl</kbd>+<kbd>V</kbd>). Set **Width** and **Height** to your canvas (OBS **Settings → Video → Base Resolution**)
+and click **OK**. Then drag it to the top of **Sources**.
+
+The overlay plays your own clip instead when you pick one under **Clip** (with its **Clip background** and **Hitmarker at**).
+If you delete the overlay in OBS, DogMute doesn't add it back to that scene collection. **Add to OBS now** does.
+Leave **Quickscope on my camera** off when you use the overlay: OBS already has your webcam, and Windows lets only one app
+use a webcam at a time.
+
 ### Killfeed camera
 
 Turn on **Settings → Killfeed camera → Quickscope on my camera** and every mute plays a quickscope over your webcam:
@@ -317,13 +352,15 @@ loopback driver:
 | **"Discord wants a redirect"** | Your app's OAuth2 page needs `http://localhost` under **Redirects**. Remember **Save Changes**. |
 | **"Discord doesn't know that Client ID + secret pair"** | Copy the Client ID again, press **Reset Secret** for a new secret, and paste both. Secrets only show once. |
 | Step 4 says **"Join any voice channel"** | Discord only opens its voice output while you're in a call. Join one. If it still isn't found, run `pw-dump \| grep -i playStream`. If that's empty, Discord isn't using PipeWire: install `pipewire-pulse`, then restart Discord. |
-| It **missed a word** | Make sure the footer says `large-v3-turbo, GPU`. The CPU models miss more slang. The word may also be spelled differently in the transcript, so add a variant to your list (a `/regex/` line works too). |
+| It **missed a word** | The default `small.en` misses more slang than `large-v3-turbo`: with an NVIDIA card, pick that under **Settings → Words → Speech model** (the footer then says `large-v3-turbo, GPU`). The word may also be spelled differently in the transcript, so add a variant to your list (a `/regex/` line works too). |
 | It says **"couldn't tell who"** | Several mics were open at once. It learns voices from moments people talk alone, so it gets better during a call. Until then, the log shows a Mute button for each candidate. |
 | **Speech runs on the CPU** although you have an NVIDIA card | It needs the CUDA 12 cuBLAS library (`libcublas.so.12`): `sudo apt install libcublas12` or the CUDA 12 toolkit. Then run `./install.sh` again. |
 | **Port 8853 is taken** | Set `"port"` in `~/.config/dogmute/config.json`, then `systemctl --user restart dogmute` (macOS: `launchctl kickstart -k gui/$(id -u)/local.dogmute`; Windows: `%APPDATA%\DogMute\config.json`, then tray icon → **Restart DogMute**). |
 | **Windows: step 3 never finds Discord** | DogMute looks for the pipe `\\.\pipe\discord-ipc-0`. Check in PowerShell: `ls \\.\pipe\ \| findstr discord`. If it's missing, quit Discord from its tray icon (not just the window's ×) and open it again. Discord in a browser has no pipe. |
 | **Windows: step 4 says it needs Windows 10 version 2004** | Older Windows can't hear one program on its own. Update Windows, or pick **Every app's sound on this PC** (then other apps' sound is heard too). |
-| **Windows: speech runs on the CPU** although you have an NVIDIA card | Run `DogMute-Setup.exe` again and tick **Use my NVIDIA graphics card**. The footer should then say `large-v3-turbo, GPU`. |
+| **Windows: speech runs on the CPU** although you have an NVIDIA card | Run `DogMute-Setup.exe` again and tick **Use my NVIDIA graphics card**. The footer should then say `GPU`. If the log says `CUDA driver version is insufficient`, update your NVIDIA driver. |
+| **Camera: couldn't open the webcam** | Another app has the webcam, usually OBS or Discord itself. Use the [OBS overlay](#obs-overlay) instead and turn **Quickscope on my camera** off. |
+| **The overlay doesn't show in OBS** | Close OBS, then **Settings → OBS overlay → Add to OBS now**. Open OBS: **DogMute overlay** should be at the top of **Sources** with its eye on. **Try it** plays one. DogMute must be running. |
 | **Windows: no pop-ups** | **Settings → System → Notifications**: turn on notifications, and DogMute's under the app list. Focus assist / Do not disturb hides them too. |
 | **macOS: step 4 says "macOS needs your OK"** | Click **Open System Settings**, turn on **Python** under **Screen & System Audio Recording** (or **Microphone** for BlackHole), then **Restart DogMute**. If Python isn't in the list, click **+** and pick it, or press **Restart DogMute** once so macOS asks again. After a Python update macOS may ask again. |
 | **macOS: step 3 never finds Discord** | DogMute looks for `discord-ipc-0` in `$TMPDIR`. Check with `ls $TMPDIR/discord-ipc-*`. If it's empty, fully quit Discord (⌘Q) and open it again. |

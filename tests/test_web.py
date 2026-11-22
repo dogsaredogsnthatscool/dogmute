@@ -109,3 +109,18 @@ def test_review_queue_on_the_page():
         urllib.request.urlopen(URL + "/api/review/clip?id=../../etc/passwd")
     except urllib.error.HTTPError as e:
         assert e.code == 404
+
+
+def test_obs_overlay_page_and_clip():
+    with urllib.request.urlopen(URL + "/obs") as r:
+        assert b"DogMute overlay" in r.read()
+    with urllib.request.urlopen(URL + "/api/overlay") as r:
+        s = json.load(r)
+    assert s["clip"].endswith("quickscope") and s["key"] == "green" and s["hit_at"] == 0.0   # the built-in default
+    with urllib.request.urlopen(URL + s["clip"]) as r:
+        assert r.headers["Content-Type"] == "video/mp4" and len(r.read()) > 100_000
+    n = s["n"]
+    post("/api/overlay/test", {"name": "Bob"})
+    with urllib.request.urlopen(URL + "/api/overlay") as r:
+        s = json.load(r)
+    assert s["n"] == n + 1 and s["event"]["name"] == "Bob"

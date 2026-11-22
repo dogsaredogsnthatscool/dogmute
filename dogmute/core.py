@@ -20,10 +20,12 @@ from . import rpc as R
 from .audio import Capture, Ring
 from .diar import Diarizer
 from .killcam import Killcam
+from . import obs as O
 from .review import DEFAULTS as REVIEW_DEFAULTS, Review
 from .rulebook import NOISE, Rulebook
 from .spam import FPS, FRAME, SpamRules
 from .stt import Listener
+from .update import Updates
 from .voice import Voices
 from .words import masked
 
@@ -46,8 +48,10 @@ DEFAULTS = {
     "slurs": {"enabled": True},  # listen for words at all (the words and how they count: rules.json, see rulebook.py)
     "spam": {"enabled": True},   # watch for noise at all (the noise rules: rules.json)
     "review": REVIEW_DEFAULTS,   # see dogmute/review.py
-    "stt": {"model": "large-v3-turbo", "threads": 4, "device": "auto"},
-    "camera": {"enabled": False, "device": ""},   # the killfeed camera (dogmute/killcam.py); "" = the default webcam
+    "stt": {"model": "small.en", "threads": 4, "device": "auto"},
+    "camera": {"enabled": False, "device": ""},
+    "obs": {"auto": True, "added": []},   # the overlay in OBS Studio (dogmute/obs.py); added = scene collections done
+    "updates": {"check": True, "auto": True},   # dogmute/update.py   # the killfeed camera (dogmute/killcam.py); "" = the default webcam
     "hook": {"enabled": False, "url": "", "clip": "", "key": "green", "hit_at": 0.0,   # see dogmute/hook.py
              "clip_dir": "", "clip_prefix": "", "sync_cmd": ""},
 }
@@ -57,7 +61,7 @@ TEST_WORD = "kangaroo"      # the setup wizard's harmless check word
 MODELS = ("tiny.en", "base.en", "small.en", "distil-large-v3", "large-v3-turbo")
 # every setting the page can change: path -> (type, min, max) or (type, choices)
 SCHEMA = {
-    "setup_done": (bool,), "audio.target": (str, None), "camera.enabled": (bool,), "camera.device": (str, None), "test_mode": (bool,), "auto_unmute_min": (int, 0, 1440), "notify": (bool,), "spare_bots": (bool,), "port": (int, 1024, 65535),
+    "setup_done": (bool,), "audio.target": (str, None), "camera.enabled": (bool,), "obs.auto": (bool,), "updates.check": (bool,), "updates.auto": (bool,), "camera.device": (str, None), "test_mode": (bool,), "auto_unmute_min": (int, 0, 1440), "notify": (bool,), "spare_bots": (bool,), "port": (int, 1024, 65535),
     "slurs.enabled": (bool,), "spam.enabled": (bool,),
     "review.enabled": (bool,), "review.clips": (bool,), "review.notify": (bool,), "review.keep_days": (int, 1, 3650),
     "review.ask_timeout_s": (int, 5, 300), "review.max_per_min": (int, 1, 30),
@@ -146,6 +150,9 @@ class Core:
         self._refresh_at = 0.0
         self.hook = hk.Hook(self)
         self.killcam = Killcam(self)
+        self.updates = Updates(self)
+        self.overlay = {"n": 0, "event": None}   # the last mute for the OBS overlay page (/api/overlay)
+        self.obs = ("off", "")                    # (state, sentence) of dogmute/obs.py setup
         self.review = Review(self)
 
     # ---------- config ----------
@@ -480,17 +487,53 @@ class Core:
         if action == "muted":
             self.hook.hit(name, reason)
             self.killcam.fire(name, (self.me or {}).get("username", ""))
+            self.fire_overlay(name)
         if self.cfg["notify"] and action in ("muted", "would mute"):
-            title = f"DogMute {'muted' if action == 'muted' else 'would mute'} {name}"
-            if WIN:
-                return windows.toast(title, reason)
-            cmd = (["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
-                    "-e", "end run", title, reason] if sys.platform == "darwin"
-                   else ["notify-send", "-a", "DogMute", "-i", "audio-volume-muted", title, reason])
+            self.notify(f"DogMute {'muted' if action == 'muted' else 'would mute'} {name}", reason)
+
+    def fire_overlay(self, name):
+        with self.lock:
+            self.overlay = {"n": self.overlay["n"] + 1,
+                            "event": {"name": name, "by": (self.me or {}).get("username", ""), "t": time.time()}}
+
+    def overlay_view(self):
+        """What /obs plays: your own clip when one is picked, else the built-in quickscope (green screen)."""
+        h = self.cfg["hook"]
+        own = bool(h.get("clip") and h["clip"] in hk.clips(h))
+        return {**self.overlay, "clip": f"/api/overlay/clip?c={h['clip'] if own else 'quickscope'}",
+                "key": h["key"] if own else "green", "hit_at": h["hit_at"] if own else 0.0}
+
+    def _obs_loop(self):
+        """Adds the overlay to OBS whenever OBS is closed and it's missing (dogmute/obs.py); a minute apart once it's in."""
+        while True:
+            if not self.cfg["obs"]["auto"]:
+                self.obs = ("off", "")
+                time.sleep(15)
+                continue
             try:
-                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except OSError:
-                pass
+                state, msg, added = O.setup(self.cfg["port"], self.cfg["obs"]["added"])
+            except OSError as e:
+                state, msg, added = "error", f"couldn't add it to OBS: {e}"[:160], []
+            if added:
+                self.cfg["obs"]["added"] = sorted(set(self.cfg["obs"]["added"]) | set(added))
+                self.cfg["camera"]["enabled"] = False   # OBS draws it now; DogMute's own camera would fight OBS for the webcam
+                self.save_cfg()
+            if (state, msg) != self.obs:
+                print("obs:", msg, flush=True)
+            self.obs = (state, msg)
+            time.sleep(60 if state in ("added", "there") else 15)
+
+    def notify(self, title, body):
+        """A desktop notification."""
+        if WIN:
+            return windows.toast(title, body)
+        cmd = (["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
+                "-e", "end run", title, body] if sys.platform == "darwin"
+               else ["notify-send", "-a", "DogMute", "-i", "audio-volume-muted", title, body])
+        try:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            pass
 
     # ---------- Discord ----------
     def on_event(self, evt, d):
@@ -710,7 +753,8 @@ class Core:
                 "voices": self.voices.status, "voices_known": sum(self.voices.known(u) for u in self.members),
                 "friends": self.cfg["friends"], "has_creds": bool(self.creds.get("client_id")), "setup": self.setup_view(),
                 "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off",
-                "review": self.review.view(), "review_s": self.cfg["review"]["ask_timeout_s"],
+                "review": self.review.view(), "update": self.updates.view(),
+                "obs": {"state": self.obs[0], "msg": self.obs[1], "url": O.url(self.cfg["port"])}, "review_s": self.cfg["review"]["ask_timeout_s"],
                 "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux"}
 
     async def run(self):
@@ -721,6 +765,8 @@ class Core:
         self.capture.start()
         self.listener.start()
         self.killcam.start()
+        self.updates.start()
+        threading.Thread(target=self._obs_loop, daemon=True).start()
         threading.Thread(target=self._learner, daemon=True).start()
         threading.Thread(target=self.diar.run, daemon=True).start()
         self.review.start()
