@@ -7,6 +7,7 @@ Turn "updates.auto" off to only be told. Linux and macOS: the page shows the com
 """
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -16,7 +17,8 @@ import urllib.request
 from pathlib import Path
 
 REPO = "dogsaredogsnthatscool/dogmute"
-API = f"https://api.github.com/repos/{REPO}/releases/latest"
+# DOGMUTE_UPDATE_URL: a stand-in for GitHub's answer when testing the patcher (http(s):// or file:///C:/...)
+API = os.environ.get("DOGMUTE_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
 ROOT = Path(__file__).resolve().parent.parent
 EVERY_S = 6 * 3600
 WIN = sys.platform == "win32"
