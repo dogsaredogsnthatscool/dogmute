@@ -97,6 +97,9 @@ class Opened:
     def set(self, *a):
         pass
 
+    def release(self):
+        pass
+
 
 @pytest.mark.parametrize("device, mf, dshow, want", [
     ("DroidCam Source 3", ["Integrated Webcam"], ["Integrated Webcam", "OBS Virtual Camera", "DroidCam Source 3"],
@@ -111,6 +114,41 @@ def test_windows_opens_any_video_source(monkeypatch, device, mf, dshow, want):
     cap, label = K.open_webcam(device)
     assert cap.args == (want[0], getattr(cv2, want[1]))
     assert label == (device or "NVIDIA Broadcast")
+
+
+class OpensOnDshow(Opened):
+    tried = []
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        OpensOnDshow.tried.append(args)
+
+    def isOpened(self):
+        return self.args[1] == cv2.CAP_DSHOW
+
+
+@pytest.mark.parametrize("device", ["", "DroidCam Source 3"])
+def test_windows_tries_the_next_camera_when_one_wont_open(monkeypatch, device):
+    # DroidCam: Media Foundation lists it but can't open it, DirectShow can
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": ["DroidCam Source 3"],
+                                                        "dshow": ["OBS Virtual Camera", "DroidCam Source 3"]})
+    monkeypatch.setattr(cv2, "VideoCapture", OpensOnDshow)
+    OpensOnDshow.tried = []
+    cap, label = K.open_webcam(device)
+    assert OpensOnDshow.tried == [(0, cv2.CAP_MSMF), (1, cv2.CAP_DSHOW)]
+    assert label == "DroidCam Source 3"
+
+
+def test_windows_says_when_no_camera_opens(monkeypatch):
+    class Busy(Opened):
+        def isOpened(self):
+            return False
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(K, "_helper_cameras", lambda: {"mf": ["Integrated Webcam"], "dshow": ["Integrated Webcam"]})
+    monkeypatch.setattr(cv2, "VideoCapture", Busy)
+    with pytest.raises(RuntimeError, match="couldn't open Integrated Webcam"):
+        K.open_webcam("")
 
 
 def test_windows_says_when_there_is_no_camera(monkeypatch):
