@@ -55,10 +55,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 [Run]
 Filename: "{app}\DogMute.exe"; Parameters: "--obs-setup"; StatusMsg: "Adding the overlay to OBS..."; Flags: runhidden waituntilterminated; Tasks: obs
 Filename: "{app}\DogMute.exe"; Parameters: "--obs-setup off"; Flags: runhidden waituntilterminated; Tasks: not obs; Check: HasObs
-Filename: "{app}\DogMute.exe"; Description: "Open DogMute"; Flags: nowait postinstall skipifsilent
-; after the self-update (silent): back in the tray. After an update run by hand (see InitializeSetup): its window opens.
-Filename: "{app}\DogMute.exe"; Parameters: "--background"; Flags: nowait; Check: WizardSilent and not ByHand
-Filename: "{app}\DogMute.exe"; Flags: nowait; Check: ByHand
+Filename: "{app}\DogMute.exe"; Description: "Open DogMute"; Flags: nowait postinstall skipifsilent; Check: not Updating
+; an update opened by hand: no finish page, DogMute's window just opens again
+Filename: "{app}\DogMute.exe"; Flags: nowait; Check: Updating and not WizardSilent
+; the self-update (silent): DogMute goes back to the tray
+Filename: "{app}\DogMute.exe"; Parameters: "--background"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/f /t /im DogMute.exe"; Flags: runhidden; RunOnceId: "StopDogMute"
@@ -77,26 +78,27 @@ var
 const
   UninstKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6E0C4F2B-8D1A-4B7E-9F3C-2A5D7B9E1C40}_is1';
 
-function ByHand: Boolean;
-begin
-  // set by InitializeSetup below when it starts this installer again for an update someone ran by hand
-  Result := ExpandConstant('{param:BYHAND|0}') = '1';
-end;
+var
+  WasInstalled: Boolean;
+  ClickTimer: LongWord;
+
+function SetTimer(Wnd: LongWord; IDEvent, Elapse: LongWord; TimerFunc: LongWord): LongWord;
+  external 'SetTimer@user32.dll stdcall';
+function KillTimer(Wnd: LongWord; IDEvent: LongWord): BOOL;
+  external 'KillTimer@user32.dll stdcall';
 
 function InitializeSetup: Boolean;
-var
-  Code: Integer;
 begin
-  Result := True;
+  // DogMute is already installed and someone opened the new DogMute-Setup.exe: no questions, it just updates
+  WasInstalled := RegKeyExists(HKCU, UninstKey) or RegKeyExists(HKLM, UninstKey);
   if not RegQueryStringValue(HKCU, UninstKey, 'DisplayVersion', OldVersion) then
     RegQueryStringValue(HKLM, UninstKey, 'DisplayVersion', OldVersion);
-  // DogMute is already installed and someone opened the new DogMute-Setup.exe: no questions, just update it.
-  // This copy starts the same file again silently (only a progress bar, the choices made last time are kept) and leaves.
-  if (RegKeyExists(HKCU, UninstKey) or RegKeyExists(HKLM, UninstKey)) and not WizardSilent then
-    if ShellExec('', ExpandConstant('{srcexe}'), '/SILENT /SUPPRESSMSGBOXES /NORESTART /BYHAND=1', '', SW_SHOW, ewNoWait, Code) then
-      Result := False
-    else
-      Log('starting the update silently failed (' + SysErrorMessage(Code) + '): showing the wizard instead');
+  Result := True;
+end;
+
+function Updating: Boolean;
+begin
+  Result := WasInstalled;
 end;
 
 function HasObs: Boolean;
@@ -174,14 +176,31 @@ begin
 end;
 #endif
 
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  // on an update the boxes ticked last time stay ticked (new ones start as on a new install), and there's no finish page
+  Result := WasInstalled and ((PageID = wpSelectTasks) or (PageID = wpFinished));
+end;
+
+procedure PressInstall(Wnd: LongWord; Msg: LongWord; IDEvent: LongWord; Time: LongWord);
+begin
+  KillTimer(0, ClickTimer);
+  if WizardForm.CurPageID = wpReady then
+    WizardForm.NextButton.OnClick(WizardForm.NextButton);
+end;
+
 procedure CurPageChanged(CurPageID: Integer);
 begin
-  if ByHand and (CurPageID = wpInstalling) then begin
+  // Inno Setup always shows one page before installing (Ready to Install). On an update, Install is pressed for you
+  // a moment after it appears (not from inside this function: the page isn't fully shown yet).
+  if WasInstalled and (CurPageID = wpReady) and not WizardSilent then
+    ClickTimer := SetTimer(0, 0, 300, CreateCallback(@PressInstall));
+  if WasInstalled and (CurPageID = wpInstalling) then begin
     WizardForm.PageNameLabel.Caption := 'Updating DogMute';
     if OldVersion <> '' then
-      WizardForm.PageDescriptionLabel.Caption := OldVersion + ' to {#Version}. Your settings stay. DogMute opens when it''s done.'
+      WizardForm.PageDescriptionLabel.Caption := OldVersion + ' to {#Version}. Your settings stay. DogMute opens again when it''s done.'
     else
-      WizardForm.PageDescriptionLabel.Caption := 'To {#Version}. Your settings stay. DogMute opens when it''s done.';
+      WizardForm.PageDescriptionLabel.Caption := 'To {#Version}. Your settings stay. DogMute opens again when it''s done.';
   end;
 end;
 
