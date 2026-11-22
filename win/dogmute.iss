@@ -174,16 +174,14 @@ begin
   if not WasInstalled then
     Exit;
   // no questions on an update: the boxes ticked last time stay ticked (new ones start as they would on a new install)
-  Result := (PageID = wpSelectTasks) or (PageID = wpFinished) or (PageID = wpReady)
-#ifdef CublasUrl
-    // ...unless the graphics card files still have to be downloaded, which happens when Next is clicked on wpReady
-    and not ((PageID = wpReady) and WizardIsTaskSelected('gpu') and not HaveCuda)
-#endif
-    ;
+  Result := (PageID = wpSelectTasks) or (PageID = wpFinished);
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  // Inno Setup always shows one page before installing (Ready to Install): on an update it clicks Install itself
+  if WasInstalled and (CurPageID = wpReady) and not WizardSilent then
+    WizardForm.NextButton.OnClick(WizardForm.NextButton);
   if WasInstalled and (CurPageID = wpInstalling) then begin
     WizardForm.PageNameLabel.Caption := 'Updating DogMute';
     if OldVersion <> '' then
