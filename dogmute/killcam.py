@@ -332,17 +332,23 @@ def open_webcam(device):
             + [((i, cv2.CAP_DSHOW), n) for i, n in enumerate(ds or []) if ok(n)]
         if not pick and (mf is not None or ds is not None):
             raise RuntimeError("that webcam is gone" if device else "no webcam found")
-        args, label = pick[0] if pick else ((0, cv2.CAP_MSMF), "the webcam")   # the helper couldn't say: the first one
+        pick = pick or [((0, cv2.CAP_MSMF), "the webcam")]   # the helper couldn't say: the first one
     elif sys.platform == "linux":
         cams = [(p, n) for p, n in _linux_cameras() if (p == device if device else not _virtual(n))]
         if not cams:
             raise RuntimeError("that webcam is gone" if device else "no webcam found")
-        args, label = (cams[0][0], cv2.CAP_V4L2), cams[0][1]
+        pick = [((cams[0][0], cv2.CAP_V4L2), cams[0][1])]
     else:
-        args, label = (0, cv2.CAP_AVFOUNDATION), "the camera"
-    cap = cv2.VideoCapture(*args)
-    if not cap.isOpened():
-        raise RuntimeError(f"couldn't open {label} (another app may be using it)")
+        pick = [((0, cv2.CAP_AVFOUNDATION), "the camera")]
+    # the next one when one won't open: a camera Media Foundation lists may only open through DirectShow
+    # (DroidCam), and by default any other real camera will do
+    for args, label in pick:
+        cap = cv2.VideoCapture(*args)
+        if cap.isOpened():
+            break
+        cap.release()
+    else:
+        raise RuntimeError(f"couldn't open {pick[0][1]} (another app may be using it)")
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cap.set(cv2.CAP_PROP_FPS, 30)
