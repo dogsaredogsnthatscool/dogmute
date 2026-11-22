@@ -101,7 +101,7 @@ class Updates(threading.Thread):
         try:
             n = latest()
         except (OSError, ValueError) as e:
-            self.status = f"couldn't check: {e}"[:120]
+            self.status = f"update check couldn't reach GitHub ({e})"[:120]
             return
         self.new = n if newer(n["version"], self.version) else None
         self._failed = None
@@ -130,7 +130,7 @@ class Updates(threading.Thread):
                 out.write(chunk)
         if h.hexdigest() != n["sha256"].lower():
             f.with_suffix(".part").unlink(missing_ok=True)
-            self.status = "the download didn't match GitHub's checksum: not installed"
+            self.status = "download didn't match GitHub's checksum"
             raise RuntimeError(self.status)
         f.with_suffix(".part").replace(f)
         for old in d.glob("DogMute-Setup-*.exe"):
@@ -147,7 +147,7 @@ class Updates(threading.Thread):
             self.patch()
         except (OSError, RuntimeError) as e:
             self._failed = (self.new or {}).get("version")
-            self.status = f"update didn't install: {e}"[:160]
+            self.status = f"update didn't install ({e})"[:160]
             print("update:", self.status, flush=True)
 
     def run(self):
