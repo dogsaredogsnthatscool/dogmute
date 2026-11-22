@@ -59,7 +59,9 @@ Want a quickscope on your camera each time someone gets muted? See [OBS overlay]
 you get a notification and a bar at the top of the page. Once you're not in a voice call, DogMute downloads the new
 `DogMute-Setup.exe`, checks it against the SHA-256 GitHub lists for it, installs it silently and restarts. Your settings,
 words and models stay, and the graphics card files aren't downloaded again. **Install now** on the bar does it right
-away. To only be told, untick **Settings → DogMute → Install updates by itself**. On Linux and macOS the bar shows the
+away. To only be told, untick **Settings → DogMute → Install updates by itself**. Updating by hand works the same way: open the new
+`DogMute-Setup.exe` and it updates without asking anything (the boxes you ticked last time stay ticked), then opens
+DogMute again. On Linux and macOS the bar shows the
 command to run (`git pull && ./install.sh` in your DogMute folder).
 
 DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
