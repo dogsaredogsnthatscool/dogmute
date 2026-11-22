@@ -34,8 +34,9 @@ CloseApplications=no
 [Tasks]
 Name: startup; Description: "Start DogMute when I sign in (it waits quietly for Discord)"
 Name: desktopicon; Description: "Put DogMute on the Desktop"; Flags: unchecked
+Name: obs; Description: "Add the quickscope overlay to OBS Studio (it plays over your webcam scene on each mute)"; Check: HasObs
 #ifdef CublasUrl
-Name: gpu; Description: "Use my NVIDIA graphics card for speech: catches more words (downloads about 1.2 GB)"; Check: HasNvidia
+Name: gpu; Description: "Use my NVIDIA graphics card for speech: faster, and lets you pick the most accurate model (downloads about 1.2 GB)"; Check: HasNvidia
 #endif
 
 [Files]
@@ -52,7 +53,11 @@ Name: "{userdesktop}\DogMute"; Filename: "{app}\DogMute.exe"; Tasks: desktopicon
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "DogMute"; ValueData: """{app}\DogMute.exe"" --background"; Flags: uninsdeletevalue; Tasks: startup
 
 [Run]
+Filename: "{app}\DogMute.exe"; Parameters: "--obs-setup"; StatusMsg: "Adding the overlay to OBS..."; Flags: runhidden waituntilterminated; Tasks: obs
+Filename: "{app}\DogMute.exe"; Parameters: "--obs-setup off"; Flags: runhidden waituntilterminated; Tasks: not obs; Check: HasObs
 Filename: "{app}\DogMute.exe"; Description: "Open DogMute"; Flags: nowait postinstall skipifsilent
+; an update DogMute installed by itself (silent): start it again, in the tray
+Filename: "{app}\DogMute.exe"; Parameters: "--background"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/f /t /im DogMute.exe"; Flags: runhidden; RunOnceId: "StopDogMute"
@@ -65,6 +70,19 @@ Type: filesandordirs; Name: "{app}\_internal"
 [Code]
 var
   DownloadPage: TDownloadWizardPage;
+  GotCuda: Boolean;
+
+function HasObs: Boolean;
+begin
+  Result := DirExists(ExpandConstant('{userappdata}\obs-studio'))
+    or FileExists(ExpandConstant('{commonpf64}\obs-studio\bin\64bit\obs64.exe'));
+end;
+
+function HaveCuda: Boolean;
+begin
+  // an update over a graphics card install: the files are already there, so they aren't downloaded again
+  Result := DirExists(ExpandConstant('{app}\cuda\nvidia\cudnn\bin')) and DirExists(ExpandConstant('{app}\cuda\nvidia\cublas\bin'));
+end;
 
 function HasNvidia: Boolean;
 begin
@@ -96,7 +114,7 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  if (CurPageID = wpReady) and WizardIsTaskSelected('gpu') then begin
+  if (CurPageID = wpReady) and WizardIsTaskSelected('gpu') and not HaveCuda then begin
     DownloadPage.Clear;
     DownloadPage.Add('{#CublasUrl}', 'cublas.whl', '{#CublasSha}');
     DownloadPage.Add('{#CudnnUrl}', 'cudnn.whl', '{#CudnnSha}');
@@ -104,6 +122,7 @@ begin
     try
       try
         DownloadPage.Download;
+        GotCuda := True;
       except
         if not DownloadPage.AbortedByUser then
           SuppressibleMsgBox('The graphics card files didn''t download: ' + GetExceptionMessage + #13#10#13#10 +
@@ -131,7 +150,7 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
 #ifdef CublasUrl
-  if (CurStep = ssPostInstall) and WizardIsTaskSelected('gpu') then begin
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('gpu') and GotCuda then begin
     WizardForm.StatusLabel.Caption := 'Unpacking the graphics card''s speech files...';
     ForceDirectories(ExpandConstant('{app}\cuda'));
     Unpack('cublas.whl', 'nvidia/cublas/bin');

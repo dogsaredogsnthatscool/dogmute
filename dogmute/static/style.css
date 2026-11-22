@@ -84,3 +84,9 @@ dialog::backdrop { background: #000a; }
 #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50; padding: 8px 14px; background: var(--face);
   border: 2px solid; border-color: var(--blt) var(--bdk) var(--bdk) var(--blt); box-shadow: 0 8px 24px #000a; max-width: 90vw; }
 
+kbd { font: 11px var(--mono); padding: 0 4px; border: 1px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); background: var(--face2); color: var(--text); white-space: nowrap; }
+.upd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; background: var(--face2); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--lcd); }
+.upd .grow { flex: 1; min-width: 14em; }
+.obs-hand { margin: 6px 0; font-size: 12px; color: var(--dim); }
+.obs-hand summary { cursor: pointer; color: var(--text); }
+#obsUrl { word-break: break-all; }
