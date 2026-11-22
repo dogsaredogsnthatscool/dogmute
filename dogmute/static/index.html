@@ -358,7 +358,7 @@
         <p class="hint">Each mute plays the quickscope (green screen keyed out) over your OBS scene, so it shows on your
           webcam in Discord. DogMute puts it in OBS for you while OBS is closed.</p>
         <p class="hint" id="obsState" role="status"></p>
-        <div class="set"><label for="s-obs-auto">Add it to OBS by itself<small>Once per scene collection. If you delete it in OBS, it stays deleted.</small></label>
+        <div class="set"><label for="s-obs-auto">Add it to OBS automatically<small>Once per scene collection. If you delete it in OBS, it stays deleted.</small></label>
           <span class="ctl"><input id="s-obs-auto" type="checkbox" data-path="obs.auto"></span></div>
         <ol class="wz-do">
           <li>In OBS, click <b>Start Virtual Camera</b> (the <b>Controls</b> box, bottom right).</li>
@@ -606,7 +606,7 @@ function render(s) {
   if (u.new) {
     const v = `DogMute ${u.new.version}`;
     $("updMsg").textContent = busy ? `${v}: ${u.status.replace(/ [\d.]+$/, "")}…`
-      : /didn't|couldn't/.test(u.status) ? `${v} is out, but the ${u.status}.`
+      : /didn't|couldn't/.test(u.status) ? `${v} is out, but the ${u.status}. Get it from the release page.`
       : u.auto && u.can_patch ? `${v} is out. It installs itself when you're not in a call.`
       : u.can_patch ? `${v} is out.`
       : s.platform === "windows" ? `${v} is out. Download DogMute-Setup.exe from the release page and run it.`
