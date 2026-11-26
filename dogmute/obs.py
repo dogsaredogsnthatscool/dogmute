@@ -26,19 +26,26 @@ def url(port):
     return f"http://127.0.0.1:{port}{PATH}"
 
 
+FLATPAK = os.path.exists("/.flatpak-info")
+
+
 def dirs():
-    """OBS's settings folders on this computer (the Flatpak one too)."""
+    """OBS's settings folders on this computer (the Flatpak one too). Inside DogMute's own Flatpak, XDG_CONFIG_HOME is
+    DogMute's folder, so OBS's is looked for under the real home as well."""
     if sys.platform == "win32":
         c = [Path(os.environ.get("APPDATA", "")) / "obs-studio"]
     elif sys.platform == "darwin":
         c = [Path.home() / "Library/Application Support/obs-studio"]
     else:
-        c = [Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "obs-studio",
+        c = [Path(os.environ.get("HOST_XDG_CONFIG_HOME") or os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+             / "obs-studio", Path.home() / ".config/obs-studio",
              Path.home() / ".var/app/com.obsproject.Studio/config/obs-studio"]
-    return [d for d in c if d.is_dir()]
+    return [d for d in dict.fromkeys(c) if d.is_dir()]
 
 
 def running():
+    if FLATPAK:   # the sandbox can't see other programs: OBS 31+ keeps a file in .sentinel while it runs
+        return any(f.is_file() for d in dirs() for f in (d / ".sentinel").glob("run_*"))
     try:
         if sys.platform == "win32":
             out = subprocess.run(["tasklist", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"], capture_output=True,
@@ -154,7 +161,7 @@ def main(argv):
         from .windows import conf_dir
         base = conf_dir()
     else:
-        base = Path.home() / ".config/dogmute"
+        base = Path((os.environ.get("XDG_CONFIG_HOME") if FLATPAK else None) or Path.home() / ".config") / "dogmute"
     conf = Path(os.environ.get("DOGMUTE_CONFIG") or base)   # the same folder as dogmute/core.py's CONF, without its imports
     f = conf / "config.json"
     cfg = json.loads(f.read_text()) if f.exists() else {}

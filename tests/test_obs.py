@@ -147,3 +147,37 @@ def test_linux_leaves_a_changed_checkout_alone(tmp_path, monkeypatch):
 def test_no_self_update_outside_the_service(monkeypatch):
     monkeypatch.setenv("INVOCATION_ID", "x")   # other systemd units (terminals, desktop apps) pass this on: not enough
     assert not U.in_service() and not U.git_patchable()
+
+
+def test_flatpak_finds_obs_under_the_real_home_and_sees_it_running_by_its_sentinel(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    obs = home / ".config/obs-studio"
+    (obs / ".sentinel").mkdir(parents=True)
+    monkeypatch.setattr(O, "FLATPAK", True)
+    monkeypatch.setattr(O.Path, "home", lambda: home)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".var/app/com.dogmosh.DogMute/config"))   # DogMute's own
+    monkeypatch.delenv("HOST_XDG_CONFIG_HOME", raising=False)
+    assert O.dirs() == [obs] and not O.running()
+    (obs / ".sentinel/run_abc").write_text("")
+    assert O.running()
+
+
+def test_flatpak_updates_by_its_file_not_git(monkeypatch):
+    monkeypatch.setattr(U, "FLATPAK", True)
+    monkeypatch.setattr(U, "LINUX", True)
+    monkeypatch.setattr(U, "in_service", lambda: True)
+    assert not U.git_patchable()
+
+
+def test_flatpak_launcher_only_opens_the_page_when_dogmute_runs(monkeypatch):
+    from dogmute import flatpak as F
+    opened, started = [], []
+    monkeypatch.setattr(F, "up", lambda p: True)
+    monkeypatch.setattr(F, "open_page", opened.append)
+    monkeypatch.setattr(F, "supervise", lambda: started.append(1))
+    monkeypatch.setattr(F, "port", lambda: 8853)
+    monkeypatch.setattr(F.sys, "argv", ["dogmute"])
+    F.main()
+    monkeypatch.setattr(F.sys, "argv", ["dogmute", "--background"])
+    F.main()
+    assert opened == [8853] and not started

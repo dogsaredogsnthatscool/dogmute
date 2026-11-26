@@ -179,3 +179,24 @@ def test_capture_survives_a_bad_block():
     c.proc = types.SimpleNamespace(stdout=io.BytesIO(bytes(BLOCK * 4 * 3)))
     c._read()
     assert len(got) == 3
+
+
+def test_pw_dump_from_an_older_pipewire_still_parses():
+    """An older pw-dump than the PipeWire server (the Flatpak runtime's) prints unknown params without their keys."""
+    import json
+
+    from dogmute import audio as A
+    broken = '''[
+  {"id": 76, "type": "PipeWire:Interface:Node", "info": {
+      "props": {"application.name": "WEBRTC VoiceEngine", "application.process.binary": "Discord", "media.name": "a \\"}{[ b"},
+      "params": {"Tag": [ {"direction": "Output"} ], [ ], [ {"id-000000c4": null} ] }
+  }}
+]'''
+    try:
+        json.loads(broken)
+        raise AssertionError("the sample should be broken JSON")
+    except ValueError:
+        pass
+    d = json.loads(A._no_params(broken))
+    assert d[0]["info"]["params"] == {} and A._is_discord(d[0]["info"]["props"])
+    assert d[0]["info"]["props"]["media.name"] == 'a "}{[ b'

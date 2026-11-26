@@ -32,8 +32,15 @@ from .words import masked
 WIN = sys.platform == "win32"
 if WIN:
     from . import windows
-CONF = Path(os.environ.get("DOGMUTE_CONFIG") or (windows.conf_dir() if WIN else Path.home() / ".config/dogmute"))
-STATE = Path(os.environ.get("DOGMUTE_STATE") or (windows.state_dir() if WIN else Path.home() / ".local/state/dogmute"))
+FLATPAK = os.path.exists("/.flatpak-info")   # the Flatpak: its own config and state folders under ~/.var/app
+
+
+def _xdg(var, default):
+    return Path((os.environ.get(var) if FLATPAK else None) or Path.home() / default) / "dogmute"
+
+
+CONF = Path(os.environ.get("DOGMUTE_CONFIG") or (windows.conf_dir() if WIN else _xdg("XDG_CONFIG_HOME", ".config")))
+STATE = Path(os.environ.get("DOGMUTE_STATE") or (windows.state_dir() if WIN else _xdg("XDG_STATE_HOME", ".local/state")))
 HERE = Path(__file__).resolve().parent
 
 DEFAULTS = {
@@ -755,7 +762,7 @@ class Core:
                 "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off",
                 "review": self.review.view(), "update": self.updates.view(),
                 "obs": {"state": self.obs[0], "msg": self.obs[1], "url": O.url(self.cfg["port"])}, "review_s": self.cfg["review"]["ask_timeout_s"],
-                "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux"}
+                "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux", "flatpak": FLATPAK}
 
     async def run(self):
         self.loop = asyncio.get_running_loop()

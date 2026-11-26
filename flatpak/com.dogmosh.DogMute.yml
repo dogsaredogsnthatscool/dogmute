@@ -1,0 +1,36 @@
+# DogMute's Flatpak. flatpak/build.sh builds it into DogMute.flatpak (one file to download and open).
+# Speech runs on the CPU here (small.en): the NVIDIA speech libraries aren't in the Flatpak.
+app-id: com.dogmosh.DogMute
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: dogmute
+finish-args:
+  - --share=network                 # the page on 127.0.0.1, model downloads, the update check
+  - --filesystem=xdg-run/pipewire-0 # hears Discord's voice output (pw-dump, pw-record), never a microphone
+  - --filesystem=xdg-run/discord-ipc-0   # Discord's local socket, to mute people
+  - --filesystem=xdg-run/discord-ipc-1
+  - --filesystem=xdg-run/discord-ipc-2
+  - --filesystem=xdg-run/app/com.discordapp.Discord        # ...when Discord is the Flatpak
+  - --filesystem=xdg-run/app/com.discordapp.DiscordCanary
+  - --filesystem=xdg-run/snap.discord                       # ...or the Snap
+  - --filesystem=~/.config/obs-studio                       # adds the overlay to OBS
+  - --filesystem=~/.var/app/com.obsproject.Studio/config/obs-studio
+  - --device=all                    # the killfeed camera: webcams in, the v4l2loopback camera out
+  - --talk-name=org.freedesktop.Notifications
+modules:
+  - python-deps.json
+  - name: dogmute
+    buildsystem: simple
+    build-commands:
+      - install -d /app/lib/dogmute
+      - cp -r dogmute /app/lib/dogmute/
+      - rm -rf /app/lib/dogmute/dogmute/__pycache__
+      - install -Dm755 flatpak/dogmute.sh /app/bin/dogmute
+      - install -Dm644 flatpak/com.dogmosh.DogMute.desktop -t /app/share/applications
+      - install -Dm644 flatpak/com.dogmosh.DogMute.metainfo.xml -t /app/share/metainfo
+      - install -Dm644 dogmute/static/icon.png /app/share/icons/hicolor/256x256/apps/com.dogmosh.DogMute.png
+    sources:
+      - type: dir
+        path: ..
+        skip: [.git, .venv, .venv-build, bin, build, dist, tests, scripts, win, mac, docs, .flatpak-builder, flatpak/build-dir, flatpak/repo]

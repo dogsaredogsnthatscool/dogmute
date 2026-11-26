@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=DogMute
+Comment=Auto local-mute for slurs and mic spam in your Discord calls
+Exec=dogmute
+Icon=com.dogmosh.DogMute
+Terminal=false
+Categories=Network;Chat;
+Keywords=Discord;mute;voice;

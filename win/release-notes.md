@@ -1,5 +1,7 @@
 **DogMute for Windows.** Download `DogMute-Setup.exe` below and run it. New to DogMute? Follow the 5 steps on the page that opens.
 
+**On Linux?** Download `DogMute.flatpak` below and open it, or see the README for `install.sh`.
+
 **New in 1.2.1**
 
 - **Updating is one double-click.** If DogMute is already installed, opening `DogMute-Setup.exe` updates it without any questions: you see a progress bar, then DogMute opens again. The boxes you ticked last time stay ticked.

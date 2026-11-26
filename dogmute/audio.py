@@ -28,11 +28,43 @@ PERMISSION = {"screen": "macOS needs your OK: allow Screen & System Audio Record
               "microphone": "macOS needs your OK: allow Microphone for Python (to read the loopback device)"}
 
 
+def _no_params(text):
+    """pw-dump's output with every "params" block emptied. An older pw-dump than the PipeWire running (the Flatpak's
+    runtime against a newer system) prints params it doesn't know as invalid JSON, and DogMute never reads params."""
+    out, i, key = [], 0, '"params": {'
+    while (j := text.find(key, i)) >= 0:
+        out.append(text[i:j] + '"params": {}')
+        k, depth, string = j + len(key), 1, False
+        while k < len(text) and depth:
+            c = text[k]
+            if string:
+                if c == "\\":
+                    k += 1
+                elif c == '"':
+                    string = False
+            elif c == '"':
+                string = True
+            elif c in "{[":
+                depth += 1
+            elif c in "}]":
+                depth -= 1
+            k += 1
+        i = k
+    return "".join(out) + text[i:]
+
+
 def _dump():
     try:
-        return json.loads(subprocess.run(["pw-dump"], capture_output=True, timeout=5).stdout or b"[]")
+        text = subprocess.run(["pw-dump"], capture_output=True, timeout=5).stdout.decode("utf-8", "replace") or "[]"
     except Exception:
         return []
+    try:
+        return json.loads(text)
+    except ValueError:
+        try:
+            return json.loads(_no_params(text))
+        except ValueError:
+            return []
 
 
 def _is_discord(p):

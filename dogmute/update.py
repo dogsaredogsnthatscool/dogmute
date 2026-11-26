@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EVERY_S = 6 * 3600
 WIN = sys.platform == "win32"
 LINUX = sys.platform == "linux"
+FLATPAK = os.path.exists("/.flatpak-info")   # updated by opening the new DogMute.flatpak (no git, no install.sh)
 
 
 def _git(*a, timeout=120):
@@ -45,7 +46,7 @@ def in_service():
 def git_patchable():
     """Linux: a git checkout that install.sh's systemd service runs, so git and install.sh can update it and
     systemd-run can run install.sh outside the service it restarts."""
-    return bool(LINUX and (ROOT / ".git").exists() and (ROOT / "install.sh").is_file() and in_service()
+    return bool(LINUX and not FLATPAK and (ROOT / ".git").exists() and (ROOT / "install.sh").is_file() and in_service()
                 and shutil.which("git") and shutil.which("systemd-run") and shutil.which("systemctl"))
 
 

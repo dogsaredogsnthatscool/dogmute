@@ -12,7 +12,8 @@ offline, and asks the Discord app to mute the person who said a word on your lis
 ## Quick start
 
 **On Windows?** Download [`DogMute-Setup.exe`](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest) and
-see [On Windows](#on-windows). The steps below are for Linux; a Mac has its own list just after.
+see [On Windows](#on-windows). **On Linux and want one file?** See [As a Flatpak](#as-a-flatpak). The steps below are
+for Linux; a Mac has its own list just after.
 
 1. Open the **Discord desktop app** and log in.
 2. Run: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
@@ -176,6 +177,22 @@ py -3.13 -m venv .venv; .venv\Scripts\pip install -r requirements.txt   # + -r r
 .venv\Scripts\python -m dogmute.winapp                                     # tray + page; python -m dogmute for the engine alone
 win\build.ps1 -Version 1.0.0                                               # or build the installer: dist\DogMute-Setup.exe
 ```
+
+### As a Flatpak
+
+1. Download [`DogMute.flatpak`](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest) and open it (GNOME
+   Software or KDE Discover install it), or run `flatpak install --user DogMute.flatpak`. Flathub must be set up, for
+   the runtime it uses.
+2. Open **DogMute** from your app menu. It starts, asks to run in the background when you log in (say yes), and opens
+   **http://127.0.0.1:8853** in your browser. Follow the 5 steps.
+3. To update, download the new `DogMute.flatpak` and open it. Your settings stay (in
+   `~/.var/app/com.dogmosh.DogMute`). The page tells you when a new version is out.
+
+The Flatpak runs speech on the CPU with `small.en` (the NVIDIA speech libraries aren't in it), and it can't see other
+programs, so it adds its overlay to OBS once OBS 31 or newer has been closed. It may read and write only what it needs:
+PipeWire (to hear Discord, never a microphone), Discord's local socket, OBS's settings folder, cameras (the killfeed
+camera) and notifications. To build it yourself: `flatpak/build.sh 1.3.0` (needs `org.flatpak.Builder` and
+`org.freedesktop.Sdk//25.08` from Flathub).
 
 ## Setup (the 5 steps on the page)
 

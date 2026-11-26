@@ -610,6 +610,7 @@ function render(s) {
       : u.auto && u.can_patch ? `${v} is out. It installs itself when you're not in a call.`
       : u.can_patch ? `${v} is out.`
       : s.platform === "windows" ? `${v} is out. Download DogMute-Setup.exe from the release page and run it.`
+      : s.flatpak ? `${v} is out. Download DogMute.flatpak from the release page and open it. Your settings stay.`
       : `${v} is out. In a terminal, in your DogMute folder, run: ./install.sh --update`;
     $("updNow").hidden = !u.can_patch || busy;
     $("updPage").hidden = !u.new.page;
