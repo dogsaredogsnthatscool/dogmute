@@ -22,8 +22,12 @@ jobs:
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          # only what vcvars64.bat adds or changes; never PSModulePath (Windows PowerShell 5 steps would load PowerShell 7's modules)
+          $before = @{}; cmd /c set | ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { $before[$matches[1]] = $matches[2] } }
           cmd /c "`"$vs\VC\Auxiliary\Build\vcvars64.bat`" >nul && set" | ForEach-Object {
-            if ($_ -match '^([^=]+)=(.*)$') { "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV }
+            if ($_ -match '^([^=]+)=(.*)$' -and $matches[1] -ne 'PSModulePath' -and $before[$matches[1]] -ne $matches[2]) {
+              "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV
+            }
           }
       - uses: LABSN/sound-ci-helpers@v1
       - name: OBS Studio (its virtual camera is what Discord picks)
@@ -53,8 +57,12 @@ jobs:
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          # only what vcvars64.bat adds or changes; never PSModulePath (Windows PowerShell 5 steps would load PowerShell 7's modules)
+          $before = @{}; cmd /c set | ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { $before[$matches[1]] = $matches[2] } }
           cmd /c "`"$vs\VC\Auxiliary\Build\vcvars64.bat`" >nul && set" | ForEach-Object {
-            if ($_ -match '^([^=]+)=(.*)$') { "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV }
+            if ($_ -match '^([^=]+)=(.*)$' -and $matches[1] -ne 'PSModulePath' -and $before[$matches[1]] -ne $matches[2]) {
+              "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV
+            }
           }
       - uses: LABSN/sound-ci-helpers@v1
       - name: Inno Setup
