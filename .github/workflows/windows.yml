@@ -71,4 +71,8 @@ jobs:
       - name: Release
         if: github.ref_type == 'tag'
         env: {GH_TOKEN: "${{ github.token }}"}
-        run: gh release create $env:GITHUB_REF_NAME dist\DogMute-Setup.exe --title "DogMute $env:GITHUB_REF_NAME" --notes-file win\release-notes.md
+        run: |   # the Flatpak workflow may have made the release first: then add the installer to it
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE) { gh release create $env:GITHUB_REF_NAME dist\DogMute-Setup.exe --title "DogMute $env:GITHUB_REF_NAME" --notes-file release-notes.md }
+          else { gh release upload $env:GITHUB_REF_NAME dist\DogMute-Setup.exe --clobber }
+          if ($LASTEXITCODE) { exit 1 }

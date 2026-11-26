@@ -1,6 +1,10 @@
-**DogMute for Windows.** Download `DogMute-Setup.exe` below and run it. New to DogMute? Follow the 5 steps on the page that opens.
+**Windows:** download `DogMute-Setup.exe` below and run it. **Linux:** download `DogMute.flatpak` below and open it, or use `install.sh` (see the README). New to DogMute? Follow the 5 steps on the page that opens.
 
-**On Linux?** Download `DogMute.flatpak` below and open it, or see the README for `install.sh`.
+**New in 1.3.0**
+
+- **DogMute for Linux as one file.** `DogMute.flatpak` installs from GNOME Software or KDE Discover, starts when you log in, and opens the setup page. Speech runs on the CPU in it. To update, open the new `DogMute.flatpak`; your settings stay.
+- **Updates install themselves on Linux** when you installed with `install.sh`, the same way as on Windows: once you're not in a voice call. To update by hand, run `./install.sh --update`.
+- **Fixes:** DogMute hears Discord again when PipeWire is newer than its own tools; a graphics card that can't run the speech model falls back to the CPU at start instead of failing on the first word.
 
 **New in 1.2.1**
 

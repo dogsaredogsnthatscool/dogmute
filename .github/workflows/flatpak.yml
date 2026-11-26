@@ -1,4 +1,4 @@
-# Linux: DogMute.flatpak. A v* tag adds it to that GitHub release (the Windows workflow makes the release).
+# Linux: DogMute.flatpak. A v* tag adds it to that GitHub release (made by whichever workflow finishes first).
 name: flatpak
 on:
   push:
@@ -35,15 +35,17 @@ jobs:
     if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with: {name: DogMute-flatpak}
-      - name: Add to the release
+      - name: Add to the release (or make it, when the Windows workflow hasn't yet)
         env: {GH_TOKEN: "${{ github.token }}"}
-        run: |   # the Windows workflow creates the release after its tests: wait for it
-          for i in $(seq 1 100); do
-            gh release upload "$GITHUB_REF_NAME" DogMute.flatpak --clobber -R "$GITHUB_REPOSITORY" && exit 0
-            sleep 60
-          done
-          exit 1
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" DogMute.flatpak --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" DogMute.flatpak --title "DogMute $GITHUB_REF_NAME" --notes-file release-notes.md \
+              || gh release upload "$GITHUB_REF_NAME" DogMute.flatpak --clobber   # made by Windows meanwhile
+          fi
