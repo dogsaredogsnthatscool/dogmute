@@ -53,8 +53,8 @@ def login_item():
 def selfcheck():
     import importlib
     import platform
-    names = ["numpy", "ctranslate2", "faster_whisper", "onnxruntime", "huggingface_hub", "av", "cv2", "pyvirtualcam",
-             "PIL", "certifi", "dogmute.core"]
+    names = ["numpy", "ctranslate2", "faster_whisper", "onnxruntime", "huggingface_hub", "cv2", "pyvirtualcam",
+             "PIL", "certifi", "dogmute.core"]   # no av: the app leaves PyAV out (dogmute/__init__.py)
     if platform.machine() == "arm64":
         names += ["mlx.core", "mlx_whisper", "mlx_whisper.transcribe", "tiktoken_ext.openai_public"]
     bad = []

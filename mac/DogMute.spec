@@ -26,7 +26,8 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hidden,
-    excludes=["tkinter", "matplotlib", "torch", "IPython", "pytest", "mlx_whisper.torch_whisper"],
+    # av: PyAV (FFmpeg, ~20 MB) is only for faster-whisper's decode_audio(), which DogMute never calls (dogmute/__init__.py)
+    excludes=["tkinter", "matplotlib", "torch", "IPython", "pytest", "mlx_whisper.torch_whisper", "av"],
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="DogMute", console=False, upx=False,

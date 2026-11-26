@@ -15,7 +15,8 @@ a = Analysis(
            (os.path.join(ROOT, "dogmute", "data"), os.path.join("dogmute", "data"))]
           + collect_data_files("faster_whisper"),
     hiddenimports=["dogmute.__main__", "dogmute.prefetch", "pystray._win32"] + collect_submodules("pyvirtualcam"),
-    excludes=["tkinter", "matplotlib", "torch", "IPython", "pytest"],
+    # av: PyAV (FFmpeg, ~20 MB) is only for faster-whisper's decode_audio(), which DogMute never calls (dogmute/__init__.py)
+    excludes=["tkinter", "matplotlib", "torch", "IPython", "pytest", "av"],
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="DogMute", icon=os.path.join(ROOT, "build", "icon.ico"),

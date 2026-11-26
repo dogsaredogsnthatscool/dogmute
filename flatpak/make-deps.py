@@ -11,6 +11,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PLATFORMS = ["manylinux_2_28_x86_64", "manylinux_2_27_x86_64", "manylinux_2_17_x86_64", "manylinux2014_x86_64",
              "linux_x86_64", "any"]
+LEAVE_OUT = {"av"}   # PyAV (FFmpeg, ~20 MB): only for faster-whisper's decode_audio(), which DogMute never calls (dogmute/__init__.py)
 
 
 def main():
@@ -23,6 +24,8 @@ def main():
         items = json.loads(report.read_text())["install"]
     sources = []
     for i in sorted(items, key=lambda i: i["metadata"]["name"].lower()):
+        if i["metadata"]["name"].lower() in LEAVE_OUT:
+            continue
         d = i["download_info"]
         sources.append({"type": "file", "url": d["url"], "sha256": d["archive_info"]["hashes"]["sha256"]})
     module = {"name": "python-deps", "buildsystem": "simple",
