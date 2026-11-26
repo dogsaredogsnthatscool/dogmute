@@ -100,3 +100,19 @@ def test_apple_gpu_speech(monkeypatch):
     assert li.transcribe(np.zeros(16000, np.float32), 10.0) == [(" kangaroo", 10.5, 11.0)]
     assert all(c["path_or_hf_repo"] == "mlx-community/distil-whisper-large-v3" and c["verbose"] is None for c in calls)
 
+
+
+def test_mac_app_login_item_follows_the_app(tmp_path, monkeypatch):
+    import plistlib
+
+    from dogmute import macapp
+    monkeypatch.setattr(macapp.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(macapp.sys, "executable", "/Applications/DogMute.app/Contents/MacOS/DogMute")
+    macapp.login_item()
+    f = tmp_path / "Library/LaunchAgents/com.dogmosh.DogMute.plist"
+    d = plistlib.loads(f.read_bytes())
+    assert d["ProgramArguments"] == ["/Applications/DogMute.app/Contents/MacOS/DogMute", "--background"]
+    assert d["RunAtLoad"] and "KeepAlive" not in d   # the app restarts the engine itself
+    monkeypatch.setattr(macapp.sys, "executable", "/Users/x/Downloads/DogMute.app/Contents/MacOS/DogMute")
+    macapp.login_item()
+    assert plistlib.loads(f.read_bytes())["ProgramArguments"][0].startswith("/Users/x/Downloads/")

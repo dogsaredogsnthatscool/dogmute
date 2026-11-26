@@ -762,7 +762,8 @@ class Core:
                 "hook": self.hook.status if self.cfg["hook"]["enabled"] and self.cfg["hook"]["url"] else "off",
                 "review": self.review.view(), "update": self.updates.view(),
                 "obs": {"state": self.obs[0], "msg": self.obs[1], "url": O.url(self.cfg["port"])}, "review_s": self.cfg["review"]["ask_timeout_s"],
-                "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux", "flatpak": FLATPAK}
+                "platform": "mac" if sys.platform == "darwin" else "windows" if WIN else "linux", "flatpak": FLATPAK,
+                "mac_app": sys.platform == "darwin" and bool(getattr(sys, "frozen", False))}
 
     async def run(self):
         self.loop = asyncio.get_running_loop()

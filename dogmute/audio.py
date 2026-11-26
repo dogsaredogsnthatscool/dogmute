@@ -24,8 +24,9 @@ DISCORD_EXE = "discord"                      # Windows: an exe name prefix, so D
 LOOPBACK = ("blackhole", "loopback", "soundflower")
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)   # Windows: no console window flashing up for the helper
 WAITING = "waiting for Discord audio"       # the setup page knows this one
-PERMISSION = {"screen": "macOS needs your OK: allow Screen & System Audio Recording for Python",
-              "microphone": "macOS needs your OK: allow Microphone for Python (to read the loopback device)"}
+WHO = "DogMute" if getattr(sys, "frozen", False) else "Python"   # what macOS's Privacy lists show: DogMute.app, or Python
+PERMISSION = {"screen": f"macOS needs your OK: allow Screen & System Audio Recording for {WHO}",
+              "microphone": f"macOS needs your OK: allow Microphone for {WHO} (to read the loopback device)"}
 
 
 def _no_params(text):

@@ -58,11 +58,12 @@ def open_when_up(p):
         time.sleep(0.2)
 
 
-def supervise():
+def supervise(cmd=None):
+    """Runs the engine and starts it again when it exits (Restart DogMute, a crash). Also used by dogmute/macapp.py."""
     crashes = []
     while True:
         started = time.monotonic()
-        code = subprocess.run([sys.executable, "-m", "dogmute"], stdin=subprocess.DEVNULL).returncode
+        code = subprocess.run(cmd or [sys.executable, "-m", "dogmute"], stdin=subprocess.DEVNULL).returncode
         now = time.monotonic()
         if now - started < 30:
             crashes = [t for t in crashes if t > now - 300] + [now]

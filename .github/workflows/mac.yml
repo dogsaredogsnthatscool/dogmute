@@ -1,0 +1,66 @@
+# Mac: DogMute-AppleSilicon.dmg and DogMute-Intel.dmg, each built and started on its own kind of Mac.
+# A v* tag adds them to that GitHub release (made by whichever workflow finishes first).
+name: mac
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths: ["mac/**", "dogmute/macapp.py", ".github/workflows/mac.yml", "requirements*.txt"]
+  workflow_dispatch:
+    inputs:
+      version: {description: "Version written into the build (e.g. 1.3.0); empty = 0.0.0, which never reports updates", required: false, default: ""}
+permissions:
+  contents: write
+jobs:
+  dmg:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: macos-15, kind: AppleSilicon}
+          - {runner: macos-15-intel, kind: Intel}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.13"}
+      - name: Build
+        env: {IN_VERSION: "${{ inputs.version }}"}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else v="${IN_VERSION:-0.0.0}"; fi
+          mac/build.sh "$v" python
+      - name: Check the app
+        env: {DOGMUTE_NO_AUTOSTART: "1", DOGMUTE_LOG_STDOUT: "1"}
+        run: |
+          APP=dist/DogMute.app/Contents/MacOS/DogMute
+          "$APP" --selfcheck
+          export DOGMUTE_CONFIG="$RUNNER_TEMP/cfg" DOGMUTE_STATE="$RUNNER_TEMP/state"
+          mkdir -p "$DOGMUTE_CONFIG" && echo '{"port": 18855, "test_mode": true, "obs": {"auto": false}}' > "$DOGMUTE_CONFIG/config.json"
+          "$APP" --background > "$RUNNER_TEMP/app.log" 2>&1 &
+          for i in $(seq 1 120); do curl -sf -o /dev/null http://127.0.0.1:18855/ && break; sleep 1; done
+          curl -sf http://127.0.0.1:18855/obs -o /dev/null
+          for i in $(seq 1 60); do
+            s=$(curl -sf http://127.0.0.1:18855/api/state || true)
+            echo "$s" | grep -q '"stt": "ready' && break; sleep 5
+          done
+          echo "$s" | python -c "import json,sys; d=json.load(sys.stdin); print({k: d[k] for k in ('state','audio','stt','voices','mac_app','update')})"
+          echo "$s" | grep -q '"stt": "ready' && echo "$s" | grep -q '"mac_app": true'
+          curl -sf -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:18855/api/restart
+          sleep 3; for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:18855/ && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:18855/ && echo "restarted"
+          cat "$RUNNER_TEMP/app.log" | tail -20
+          pkill -f DogMute.app || true
+      - uses: actions/upload-artifact@v7
+        with: {name: "DogMute-${{ matrix.kind }}", path: "dist/DogMute-${{ matrix.kind }}.dmg"}
+      - name: Add to the release (or make it)
+        if: github.ref_type == 'tag'
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          f="dist/DogMute-${{ matrix.kind }}.dmg"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$f" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$f" --title "DogMute $GITHUB_REF_NAME" --notes-file release-notes.md \
+              || gh release upload "$GITHUB_REF_NAME" "$f" --clobber
+          fi

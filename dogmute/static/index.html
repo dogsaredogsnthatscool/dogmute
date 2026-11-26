@@ -230,7 +230,7 @@
             (Windows 10 version 2004 or newer). No driver, and nothing to allow.</p>
           <div id="wz4Mac" hidden>
             <p class="hint">On a Mac, DogMute hears Discord through macOS's screen and audio capture. It keeps no picture and needs no driver.
-              The first time, macOS asks whether <b>Python</b> may record the screen and system audio. That's DogMute: turn it on.</p>
+              The first time, macOS asks whether <b class="macWho">Python</b> may record the screen and system audio. That's DogMute: turn it on.</p>
             <p class="wz-err" id="wz4Perm" role="alert" hidden></p>
             <div class="row" id="wz4Fix" hidden>
               <button class="btn hot" type="button" id="wzPriv">Open System Settings</button>
@@ -503,11 +503,13 @@ function wizard(s) {
   $("wz4Msg").innerHTML = w.audio_ok ? `<span class="wz-ok">Hearing it.</span> Change it only if you use a different app for calls.`
     : perm ? "" : (s.audio === "waiting for Discord audio" ? "Join any voice channel in Discord, and its voice output shows up here." : esc(s.audio));
   $("wz4Mac").hidden = !mac;
+  const who = s.mac_app ? "DogMute" : "Python";
+  document.querySelectorAll(".macWho").forEach((e) => { e.textContent = who; });
   $("wz4Win").hidden = s.platform !== "windows";
   $("wz4Perm").hidden = $("wz4Fix").hidden = !perm;
   if (perm) $("wz4Perm").innerHTML = /Microphone/.test(s.audio)
-    ? "macOS hasn't let DogMute read the loopback device yet. Click <b>Open System Settings</b>, turn on <b>Python</b> under <b>Microphone</b>, then click <b>Restart DogMute</b>."
-    : "macOS hasn't let DogMute hear Discord yet. Click <b>Open System Settings</b>, turn on <b>Python</b> under <b>Screen &amp; System Audio Recording</b>, then click <b>Restart DogMute</b>.";
+    ? `macOS hasn't let DogMute read the loopback device yet. Click <b>Open System Settings</b>, turn on <b>${who}</b> under <b>Microphone</b>, then click <b>Restart DogMute</b>.`
+    : `macOS hasn't let DogMute hear Discord yet. Click <b>Open System Settings</b>, turn on <b>${who}</b> under <b>Screen &amp; System Audio Recording</b>, then click <b>Restart DogMute</b>.`;
   if (now === 3 && Date.now() - srcAt > 3000) loadSources();
   // 5: test word
   const t = w.test;
@@ -611,6 +613,7 @@ function render(s) {
       : u.can_patch ? `${v} is out.`
       : s.platform === "windows" ? `${v} is out. Download DogMute-Setup.exe from the release page and run it.`
       : s.flatpak ? `${v} is out. Download DogMute.flatpak from the release page and open it. Your settings stay.`
+      : s.mac_app ? `${v} is out. Download the new DogMute .dmg from the release page and drag DogMute to Applications again. Your settings stay.`
       : `${v} is out. In a terminal, in your DogMute folder, run: ./install.sh --update`;
     $("updNow").hidden = !u.can_patch || busy;
     $("updPage").hidden = !u.new.page;
