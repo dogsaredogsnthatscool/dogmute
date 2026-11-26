@@ -2,7 +2,8 @@
 # DogMute installer for Linux and macOS: checks what's needed, installs, downloads the models, starts a background
 # service (systemd on Linux, launchd on macOS), opens setup.
 #
-#   ./install.sh                 install or update
+#   ./install.sh                 install, or apply an update already pulled
+#   ./install.sh --update        get the newest version from GitHub (git pull), then install it; your settings stay
 #   ./install.sh --desktop       also put a launcher on the Desktop
 #   ./install.sh --no-service    install only (run it yourself: .venv/bin/python -m dogmute)
 #   ./install.sh --remove        stop and remove the service and launchers (keeps your settings)
@@ -27,9 +28,10 @@ DESK="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")/DogMute.deskto
 LABEL=local.dogmute
 PLIST=~/Library/LaunchAgents/$LABEL.plist
 MACDESK="$HOME/Desktop/DogMute.webloc"
-SERVICE=1 DESKTOP=0
+SERVICE=1 DESKTOP=0 UPDATE=0 REST=()
 for a in "$@"; do
   case "$a" in
+    --update) UPDATE=1; continue ;;
     --no-service) SERVICE=0 ;;
     --desktop) DESKTOP=1 ;;
     --remove)
@@ -42,9 +44,17 @@ for a in "$@"; do
       echo "DogMute removed. Your settings are still in ~/.config/dogmute (delete that folder to forget them)."; exit 0 ;;
     *) echo "unknown option $a (see the top of install.sh)"; exit 1 ;;
   esac
+  REST+=("$a")
 done
+if [ $UPDATE = 1 ]; then   # the new install.sh does the rest: it may know steps this one doesn't
+  command -v git >/dev/null && [ -d "$HERE/.git" ] || { echo "--update needs DogMute's git folder (install it with git clone)"; exit 1; }
+  git -C "$HERE" pull -q --ff-only --tags \
+    || { echo "git pull didn't work. If you changed DogMute's files: git -C \"$HERE\" stash, then run ./install.sh --update again"; exit 1; }
+  echo "DogMute is now $(git -C "$HERE" describe --tags 2>/dev/null || echo 'up to date')"
+  exec bash "$HERE/install.sh" ${REST[@]+"${REST[@]}"}
+fi
 
-if [ -t 1 ]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' B=$'\e[1m' N=$'\e[0m'; else G= R= Y= B= N=; fi
+if [ -t 1 ]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' B=$'\e[1m' N=$'\e[0m'; else G='' R='' Y='' B='' N=''; fi
 ok()   { echo "  ${G}ok${N}   $1"; }
 bad()  { echo "  ${R}no${N}   $1"; echo "       fix: $2"; FAIL=1; }
 warn() { echo "  ${Y}note${N} $1"; if [ -n "${2:-}" ]; then echo "       $2"; fi; }

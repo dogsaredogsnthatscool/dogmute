@@ -3,7 +3,6 @@ Windows with OBS installed, as the GitHub check sets up) the picture through OBS
 import json
 import os
 import sys
-import threading
 import time
 import types
 

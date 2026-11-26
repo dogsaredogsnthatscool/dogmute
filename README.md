@@ -61,8 +61,13 @@ you get a notification and a bar at the top of the page. Once you're not in a vo
 words and models stay, and the graphics card files aren't downloaded again. **Install now** on the bar does it right
 away. To only be told, untick **Settings → DogMute → Install updates by itself**. Updating by hand works the same way: open the new
 `DogMute-Setup.exe` and it updates without asking anything (the boxes you ticked last time stay ticked), then opens
-DogMute again. On Linux and macOS the bar shows the
-command to run (`git pull && ./install.sh` in your DogMute folder).
+DogMute again.
+
+**Updates install themselves on Linux too**, when DogMute runs as the background service `./install.sh` sets up. Once
+you're not in a voice call, git gets the new release's tag from GitHub, moves your DogMute folder forward to it, and
+`./install.sh` runs again on its own (its log is `~/.local/state/dogmute/update/install.log`), then the service
+restarts. Your settings, words and models stay. It only does this when you haven't changed DogMute's files yourself.
+To update by hand, run `./install.sh --update` in your DogMute folder. On macOS the bar shows that command.
 
 DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
 *Application Audio Capture*). Other apps, games and your microphone are never heard.

@@ -49,9 +49,9 @@ DEFAULTS = {
     "spam": {"enabled": True},   # watch for noise at all (the noise rules: rules.json)
     "review": REVIEW_DEFAULTS,   # see dogmute/review.py
     "stt": {"model": "small.en", "threads": 4, "device": "auto"},
-    "camera": {"enabled": False, "device": ""},
+    "camera": {"enabled": False, "device": ""},   # the killfeed camera (dogmute/killcam.py); "" = the default webcam
     "obs": {"auto": True, "added": []},   # the overlay in OBS Studio (dogmute/obs.py); added = scene collections done
-    "updates": {"check": True, "auto": True},   # dogmute/update.py   # the killfeed camera (dogmute/killcam.py); "" = the default webcam
+    "updates": {"check": True, "auto": True},   # dogmute/update.py
     "hook": {"enabled": False, "url": "", "clip": "", "key": "green", "hit_at": 0.0,   # see dogmute/hook.py
              "clip_dir": "", "clip_prefix": "", "sync_cmd": ""},
 }

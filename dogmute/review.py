@@ -21,13 +21,12 @@ DEFAULTS = {
     "enabled": True,
     "clips": True,          # save the audio around each case (False: text only)
     "keep_days": 30,        # older cases and clips are deleted on start and daily
-    "notify": True,         # ask in a desktop notification (Linux: buttons; Mac: look at the page)
+    "notify": True,         # ask in a desktop notification (Linux: buttons; Mac and Windows: answer on the page)
     "ask_timeout_s": 30,    # a "yes" mutes only this long after the question; later it only labels
     "max_per_min": 3,       # at most this many questions popped per minute; the rest wait on the page
 }
 BEFORE, AFTER = 1.5, 1.5    # clip: this much audio around the event
-NEAR = 0.75                 # a near-miss this similar to a list word is worth asking about
-NEAR_GAP = 20.0             # ...but at most one per this many seconds (they can be frequent)
+NEAR_GAP = 20.0             # at most one near-miss question per this many seconds (they can be frequent)
 SPAM_GAP = 60.0             # at most one mic-spam question per person per this many seconds
 UNMUTE_WINDOW = 600.0       # unmuting someone within this long of a mute says the mute was wrong
 ID_RX = re.compile(r"^[0-9a-f]{12}$")

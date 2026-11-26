@@ -62,7 +62,7 @@ def test_lag_is_measured_from_onsets_out_of_silence(core):
     """Speech reaches the mix 0.25 s after Discord says someone started: the lag settles there."""
     t = 1000.0
     core.ring.push(np.zeros(RATE, np.float32), t)       # 1 s of silence anchors the clock
-    for k in range(4):
+    for _ in range(4):
         start = t + 1.0
         ev(core, "SPEAKING_START", start, "A")
         x = np.zeros(int(3.0 * RATE), np.float32)

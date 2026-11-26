@@ -25,7 +25,6 @@ tmp = tempfile.mkdtemp()
 os.environ["DOGMUTE_CONFIG"], os.environ["DOGMUTE_STATE"] = tmp + "/c", tmp + "/s"
 from dogmute.core import Core  # noqa: E402
 from dogmute.stt import Listener  # noqa: E402
-from dogmute.words import WordList  # noqa: E402
 
 
 def say(text, voice="en"):

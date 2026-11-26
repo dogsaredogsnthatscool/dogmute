@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from dogmute.spam import DEFAULTS, FPS, FRAME, SpamRules  # noqa: E402
+from dogmute.spam import DEFAULTS, FRAME, SpamRules  # noqa: E402
 
 LIVE = {"continuous_s": 7.0, "continuous_db": -20.0, "flaps_per_10s": 10}   # the config this was tuned against
 LEGACY = os.environ.get("EVAL_LEGACY")   # path to an old-API spam.py (git show <old>:dogmute/spam.py) to compare against

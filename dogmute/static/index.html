@@ -441,7 +441,7 @@
           <span class="ctl"><input id="s-port" type="number" step="1" data-path="port"></span></div>
         <div class="set"><label for="s-upd">Check for updates<small>Asks GitHub for the newest version every 6 hours. Nothing about you is sent. <span id="verNow"></span></small></label>
           <span class="ctl"><input id="s-upd" type="checkbox" data-path="updates.check"></span></div>
-        <div class="set win-only"><label for="s-upd-auto">Install updates by itself<small>Downloads the new version, checks it, and installs it when you're not in a call. Your settings stay. DogMute restarts by itself.</small></label>
+        <div class="set" id="updAutoRow" hidden><label for="s-upd-auto">Install updates by itself<small>Downloads the new version, checks it, and installs it when you're not in a call. Your settings stay. DogMute restarts by itself.</small></label>
           <span class="ctl"><input id="s-upd-auto" type="checkbox" data-path="updates.auto"></span></div>
         <div class="row foot"><button id="rerunSetup" class="btn ghost" type="button">Run setup again</button><span id="restartMsg" class="hint-inline msg"></span><span class="grow"></span><button id="restart" class="btn ghost" type="button">Restart DogMute</button></div>
       </fieldset>
@@ -610,13 +610,13 @@ function render(s) {
       : u.auto && u.can_patch ? `${v} is out. It installs itself when you're not in a call.`
       : u.can_patch ? `${v} is out.`
       : s.platform === "windows" ? `${v} is out. Download DogMute-Setup.exe from the release page and run it.`
-      : `${v} is out. In a terminal, in your DogMute folder, run: git pull && ./install.sh`;
+      : `${v} is out. In a terminal, in your DogMute folder, run: ./install.sh --update`;
     $("updNow").hidden = !u.can_patch || busy;
     $("updPage").hidden = !u.new.page;
     if (u.new.page) $("updPage").href = u.new.page;
   }
   $("verNow").textContent = u.version ? `This is version ${u.version}.` : "";
-  document.querySelectorAll(".win-only").forEach((e) => { e.hidden = s.platform !== "windows"; });
+  $("updAutoRow").hidden = !u.able;
   const o = s.obs || {};
   $("obsState").textContent = o.msg || (o.state === "off" ? "Not added by itself: tick the box, or add it by hand below." : "Looking for OBS…");
   $("obsState").className = o.state === "error" ? "hint bad" : "hint";
