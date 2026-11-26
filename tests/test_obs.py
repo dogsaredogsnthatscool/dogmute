@@ -1,5 +1,8 @@
 """The overlay in OBS (dogmute/obs.py) on a fake OBS settings folder, and the updater's version logic (dogmute/update.py)."""
 import json
+import sys
+
+import pytest
 
 from dogmute import obs as O
 from dogmute import update as U
@@ -110,6 +113,7 @@ class _Core:
         pass
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux only (systemd, the Flatpak)")
 def test_linux_patches_itself_through_its_own_systemd_unit(tmp_path, monkeypatch):
     co = _repo(tmp_path)
     monkeypatch.setattr(U, "ROOT", co)
@@ -149,6 +153,7 @@ def test_no_self_update_outside_the_service(monkeypatch):
     assert not U.in_service() and not U.git_patchable()
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux only (systemd, the Flatpak)")
 def test_flatpak_finds_obs_under_the_real_home_and_sees_it_running_by_its_sentinel(tmp_path, monkeypatch):
     home = tmp_path / "home"
     obs = home / ".config/obs-studio"
