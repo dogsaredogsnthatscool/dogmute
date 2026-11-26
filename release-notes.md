@@ -4,7 +4,13 @@
 | --- | --- | --- |
 | **Windows** 10 (2004+) or 11, 64-bit | **`DogMute-Setup.exe`** (in Assets below) | Run it. |
 | **Linux** with PipeWire | **`DogMute.flatpak`** (in Assets below) | Open it, or run `flatpak install --user DogMute.flatpak`. |
-| **Mac**, macOS 13 or newer | No file | In Terminal: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh \| bash` |
+| **Mac**, macOS 13 or newer | No file | Run the command below in Terminal. |
+
+Mac command:
+
+```
+curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash
+```
 
 Every computer needs the **Discord desktop app**. New to DogMute? Follow the 5 steps on the page that opens. Step-by-step help for each computer: [Windows](https://github.com/dogsaredogsnthatscool/dogmute#on-windows) · [Linux](https://github.com/dogsaredogsnthatscool/dogmute#on-linux) · [Mac](https://github.com/dogsaredogsnthatscool/dogmute#on-a-mac).
 
