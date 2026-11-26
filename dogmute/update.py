@@ -34,10 +34,18 @@ def _git(*a, timeout=120):
     return subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True, timeout=timeout)
 
 
+def in_service():
+    """Linux: this process runs in install.sh's systemd user service (dogmute.service)."""
+    try:
+        return "/dogmute.service" in Path("/proc/self/cgroup").read_text()
+    except OSError:
+        return False
+
+
 def git_patchable():
-    """Linux: a git checkout that install.sh's systemd service runs (INVOCATION_ID is systemd's), so git and install.sh
-    can update it and systemd-run can run install.sh outside the service it restarts."""
-    return bool(LINUX and (ROOT / ".git").exists() and (ROOT / "install.sh").is_file() and os.environ.get("INVOCATION_ID")
+    """Linux: a git checkout that install.sh's systemd service runs, so git and install.sh can update it and
+    systemd-run can run install.sh outside the service it restarts."""
+    return bool(LINUX and (ROOT / ".git").exists() and (ROOT / "install.sh").is_file() and in_service()
                 and shutil.which("git") and shutil.which("systemd-run") and shutil.which("systemctl"))
 
 

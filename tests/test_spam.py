@@ -10,7 +10,7 @@ def run(signal, seconds, cfg=None):
     r.speaking("u", True, 0.0)
     for i in range(int(seconds * FPS)):
         t = i / FPS
-        for u, why in r.frame(["u"], signal(t), t):
+        for _u, why in r.frame(["u"], signal(t), t):
             return t, why
     return None
 

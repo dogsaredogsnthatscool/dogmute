@@ -54,7 +54,7 @@ if [ $UPDATE = 1 ]; then   # the new install.sh does the rest: it may know steps
   exec bash "$HERE/install.sh" ${REST[@]+"${REST[@]}"}
 fi
 
-if [ -t 1 ]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' B=$'\e[1m' N=$'\e[0m'; else G= R= Y= B= N=; fi
+if [ -t 1 ]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' B=$'\e[1m' N=$'\e[0m'; else G='' R='' Y='' B='' N=''; fi
 ok()   { echo "  ${G}ok${N}   $1"; }
 bad()  { echo "  ${R}no${N}   $1"; echo "       fix: $2"; FAIL=1; }
 warn() { echo "  ${Y}note${N} $1"; if [ -n "${2:-}" ]; then echo "       $2"; fi; }

@@ -115,7 +115,7 @@ def test_linux_patches_itself_through_its_own_systemd_unit(tmp_path, monkeypatch
     monkeypatch.setattr(U, "ROOT", co)
     monkeypatch.setattr(U, "LINUX", True)
     monkeypatch.setattr(U, "WIN", False)
-    monkeypatch.setenv("INVOCATION_ID", "x")
+    monkeypatch.setattr(U, "in_service", lambda: True)
     monkeypatch.setenv("DOGMUTE_STATE", str(tmp_path / "state"))
     assert U.git_patchable()
     up = U.Updates(_Core())
@@ -145,5 +145,5 @@ def test_linux_leaves_a_changed_checkout_alone(tmp_path, monkeypatch):
 
 
 def test_no_self_update_outside_the_service(monkeypatch):
-    monkeypatch.delenv("INVOCATION_ID", raising=False)
-    assert not U.git_patchable()
+    monkeypatch.setenv("INVOCATION_ID", "x")   # other systemd units (terminals, desktop apps) pass this on: not enough
+    assert not U.in_service() and not U.git_patchable()
