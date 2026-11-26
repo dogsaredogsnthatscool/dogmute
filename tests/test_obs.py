@@ -80,3 +80,70 @@ def test_release_with_checksum(monkeypatch):
     monkeypatch.setattr(U, "_get", lambda url, timeout=15: io.BytesIO(json.dumps(body).encode()))
     assert U.latest() == {"version": "1.2.0", "page": body["html_url"], "setup": body["assets"][0]["browser_download_url"],
                           "sha256": "ab" * 32}
+
+
+def _repo(tmp_path):
+    """A GitHub stand-in with tags v1.0.0 and v1.1.0, and a checkout of it at v1.0.0."""
+    import subprocess
+
+    def g(*a, cwd):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, check=True, capture_output=True)
+    up = tmp_path / "up"
+    up.mkdir()
+    g("init", "-q", "-b", "main", cwd=up)
+    for v in ("1.0.0", "1.1.0"):
+        (up / "install.sh").write_text(f"echo {v}\n")
+        g("add", ".", cwd=up)
+        g("commit", "-qm", v, cwd=up)
+        g("tag", f"v{v}", cwd=up)
+    co = tmp_path / "co"
+    g("clone", "-q", str(up), str(co), cwd=tmp_path)
+    g("reset", "-q", "--hard", "v1.0.0", cwd=co)
+    return co
+
+
+class _Core:
+    channel = None
+    cfg = {"updates": {"check": True, "auto": True}}
+
+    def notify(self, *a):
+        pass
+
+
+def test_linux_patches_itself_through_its_own_systemd_unit(tmp_path, monkeypatch):
+    co = _repo(tmp_path)
+    monkeypatch.setattr(U, "ROOT", co)
+    monkeypatch.setattr(U, "LINUX", True)
+    monkeypatch.setattr(U, "WIN", False)
+    monkeypatch.setenv("INVOCATION_ID", "x")
+    monkeypatch.setenv("DOGMUTE_STATE", str(tmp_path / "state"))
+    assert U.git_patchable()
+    up = U.Updates(_Core())
+    up.new = {"version": "1.1.0", "page": None, "setup": None, "sha256": None}
+    assert up.view()["can_patch"] and up.view()["able"]
+    ran = []
+    monkeypatch.setattr(up, "_launch", ran.append)
+    monkeypatch.setattr(U.time, "sleep", lambda s: None)
+    up.patch_now()                      # the fake unit is never active, so this DogMute is still here: it didn't work
+    assert "stopped early" in up.status and up._failed == "1.1.0"
+    cmd = ran[0]
+    assert cmd[:3] == ["systemd-run", "--user", "--collect"] and cmd[-1] == U._git("rev-parse", "v1.1.0").stdout.strip()
+    assert U._git("describe", "--tags").stdout.strip() == "v1.0.0"   # the checkout moves only inside the unit
+
+
+def test_linux_leaves_a_changed_checkout_alone(tmp_path, monkeypatch):
+    co = _repo(tmp_path)
+    (co / "install.sh").write_text("echo mine\n")
+    monkeypatch.setattr(U, "ROOT", co)
+    monkeypatch.setattr(U, "WIN", False)
+    up = U.Updates(_Core())
+    up.git = True
+    up.new = {"version": "1.1.0", "page": None, "setup": None, "sha256": None}
+    monkeypatch.setattr(up, "_launch", lambda cmd: (_ for _ in ()).throw(AssertionError("launched")))
+    up.patch_now()
+    assert "were changed here" in up.status
+
+
+def test_no_self_update_outside_the_service(monkeypatch):
+    monkeypatch.delenv("INVOCATION_ID", raising=False)
+    assert not U.git_patchable()

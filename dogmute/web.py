@@ -144,7 +144,7 @@ def serve(core):
                 return {"state": state, "msg": msg}
             elif path == "/api/update/check":
                 core.updates.wake.set()
-            elif path == "/api/update/now":   # Windows: download, check and install the new version now
+            elif path == "/api/update/now":   # Windows and Linux's service: download, check and install the new version now
                 if not core.updates.view()["can_patch"]:
                     raise ValueError("this one can't patch itself: use the release page")
                 threading.Thread(target=core.updates.patch_now, daemon=True).start()
