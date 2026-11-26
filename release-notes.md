@@ -4,13 +4,10 @@
 | --- | --- | --- |
 | **Windows** 10 (2004+) or 11, 64-bit | **`DogMute-Setup.exe`** (in Assets below) | Run it. |
 | **Linux** with PipeWire | **`DogMute.flatpak`** (in Assets below) | Open it, or run `flatpak install --user DogMute.flatpak`. |
-| **Mac**, macOS 13 or newer | No file | Run the command below in Terminal. |
+| **Mac** with Apple Silicon (M1 or newer), macOS 14+ | **`DogMute-AppleSilicon.dmg`** | Open it, drag DogMute to Applications. |
+| **Mac** with Intel, macOS 14+ | **`DogMute-Intel.dmg`** | Same. |
 
-Mac command:
-
-```
-curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash
-```
+**Mac, first open:** the app isn't signed by Apple yet. If macOS says it can't check DogMute, click **Done**, then **System Settings → Privacy & Security → Open Anyway**. You do this once.
 
 Every computer needs the **Discord desktop app**. New to DogMute? Follow the 5 steps on the page that opens. Step-by-step help for each computer: [Windows](https://github.com/dogsaredogsnthatscool/dogmute#on-windows) · [Linux](https://github.com/dogsaredogsnthatscool/dogmute#on-linux) · [Mac](https://github.com/dogsaredogsnthatscool/dogmute#on-a-mac).
 
@@ -23,6 +20,10 @@ Ignore the two "Source code" files: they are for developers.
 - **DogMute as one file.** `DogMute.flatpak` installs from GNOME Software or KDE Discover, starts when you log in, and opens the setup page. Speech runs on the CPU in it. To update, open the new `DogMute.flatpak`; your settings stay.
 - **Updates install themselves** when you installed with `install.sh`, the same way as on Windows: once you're not in a voice call. To update by hand, run `./install.sh --update`.
 - **Fixed:** DogMute hears Discord again when PipeWire is newer than its own tools.
+
+**Mac**
+
+- **DogMute as an app.** `DogMute-AppleSilicon.dmg` and `DogMute-Intel.dmg`: drag DogMute to Applications and open it. No Homebrew, Python or Terminal needed. It starts when you log in, and macOS's Privacy settings list it as DogMute.
 
 **All computers**
 

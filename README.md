@@ -17,7 +17,8 @@ Pick your computer. Each one has its own steps below.
 | --- | --- | --- |
 | **Windows** 10 (version 2004+) or 11, 64-bit | [**DogMute-Setup.exe**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-Setup.exe) | Run it. [Windows steps](#on-windows) |
 | **Linux** (with PipeWire) | [**DogMute.flatpak**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute.flatpak) | Open it. [Linux steps](#on-linux) |
-| **Mac**, macOS 13 Ventura or newer | No file: one Terminal command | [Mac steps](#on-a-mac) |
+| **Mac** with Apple Silicon (M1 or newer), macOS 14+ | [**DogMute-AppleSilicon.dmg**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-AppleSilicon.dmg) | Open it, drag DogMute to Applications. [Mac steps](#on-a-mac) |
+| **Mac** with Intel, macOS 14+ | [**DogMute-Intel.dmg**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-Intel.dmg) | Same. [Mac steps](#on-a-mac) |
 
 All of them need the **Discord desktop app** (not Discord in a browser). Every release is on the
 [releases page](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest).
@@ -86,7 +87,22 @@ To update by hand, run `./install.sh --update` in your DogMute folder.
 
 ### On a Mac
 
-macOS 13 Ventura or newer. Apple Silicon runs the accurate speech model on its GPU (macOS 14+); Intel Macs use the CPU.
+**With the app (macOS 14 Sonoma or newer):** not sure which Mac you have? Apple menu → **About This Mac**: "Chip: Apple M…"
+means Apple Silicon, "Processor: Intel" means Intel.
+
+1. Open the **Discord desktop app** and log in.
+2. Download [**DogMute-AppleSilicon.dmg**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-AppleSilicon.dmg) or [**DogMute-Intel.dmg**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-Intel.dmg),
+   open it, and drag **DogMute** onto **Applications**.
+3. Open **DogMute** from Applications. The app isn't signed by Apple yet, so the first time macOS says it can't check it:
+   click **Done**, then go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to
+   DogMute, and confirm. You do this once.
+4. Your browser opens the page. Follow the 5 steps. At step 4 macOS asks whether **DogMute** may record the screen and
+   system audio: turn it on, then click **Restart DogMute**. DogMute starts by itself when you log in.
+5. To update, download the new `.dmg` and drag DogMute onto Applications again (replace it). Your settings stay.
+
+Apple Silicon runs the accurate speech model on its GPU; Intel Macs use the CPU.
+
+**Or with the install command** (macOS 13 or newer; runs from a folder you can update with git):
 
 1. Install [Homebrew](https://brew.sh) and the Xcode Command Line Tools (`xcode-select --install`), then
    `brew install python@3.13`.
