@@ -1,27 +1,41 @@
-**Windows:** download `DogMute-Setup.exe` below and run it. **Linux:** download `DogMute.flatpak` below and open it, or use `install.sh` (see the README). New to DogMute? Follow the 5 steps on the page that opens.
+## Download
 
-**New in 1.3.0**
+| Your computer | File | What to do |
+| --- | --- | --- |
+| **Windows** 10 (2004+) or 11, 64-bit | **`DogMute-Setup.exe`** (in Assets below) | Run it. |
+| **Linux** with PipeWire | **`DogMute.flatpak`** (in Assets below) | Open it, or run `flatpak install --user DogMute.flatpak`. |
+| **Mac**, macOS 13 or newer | No file | In Terminal: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh \| bash` |
 
-- **DogMute for Linux as one file.** `DogMute.flatpak` installs from GNOME Software or KDE Discover, starts when you log in, and opens the setup page. Speech runs on the CPU in it. To update, open the new `DogMute.flatpak`; your settings stay.
-- **Updates install themselves on Linux** when you installed with `install.sh`, the same way as on Windows: once you're not in a voice call. To update by hand, run `./install.sh --update`.
-- **Fixes:** DogMute hears Discord again when PipeWire is newer than its own tools; a graphics card that can't run the speech model falls back to the CPU at start instead of failing on the first word.
+Every computer needs the **Discord desktop app**. New to DogMute? Follow the 5 steps on the page that opens. Step-by-step help for each computer: [Windows](https://github.com/dogsaredogsnthatscool/dogmute#on-windows) · [Linux](https://github.com/dogsaredogsnthatscool/dogmute#on-linux) · [Mac](https://github.com/dogsaredogsnthatscool/dogmute#on-a-mac).
 
-**New in 1.2.1**
+Ignore the two "Source code" files: they are for developers.
+
+## New in 1.3.0
+
+**Linux**
+
+- **DogMute as one file.** `DogMute.flatpak` installs from GNOME Software or KDE Discover, starts when you log in, and opens the setup page. Speech runs on the CPU in it. To update, open the new `DogMute.flatpak`; your settings stay.
+- **Updates install themselves** when you installed with `install.sh`, the same way as on Windows: once you're not in a voice call. To update by hand, run `./install.sh --update`.
+- **Fixed:** DogMute hears Discord again when PipeWire is newer than its own tools.
+
+**All computers**
+
+- **Fixed:** a graphics card that can't run the speech model now falls back to the CPU at start, instead of failing on the first word.
+
+## Earlier
+
+**1.2.1 (Windows)**
 
 - **Updating is one double-click.** If DogMute is already installed, opening `DogMute-Setup.exe` updates it without any questions: you see a progress bar, then DogMute opens again. The boxes you ticked last time stay ticked.
 
-**New in 1.2.0**
+**1.2.0**
 
-- **OBS overlay.** Each mute plays the quickscope (with its green screen keyed out) over your OBS scene, plus the hitmarker, "+100" and a killfeed line. The installer adds it to OBS for you. Then click **Start Virtual Camera** in OBS and pick **OBS Virtual Camera** as your camera in Discord. This also fixes "couldn't open the webcam": OBS keeps the webcam, so DogMute doesn't need it.
-- **Updates install themselves.** DogMute checks GitHub every 6 hours. When there's a new version, it downloads it, checks it, and installs it silently once you're not in a voice call. Your settings stay. You can turn this off under **Settings → DogMute**. If you're on 1.1.1 or older, install this version by hand once.
-- **Lighter default speech model.** `small.en` runs on any computer. With an NVIDIA card, pick `large-v3-turbo` under **Settings → Words → Speech model** for the best accuracy.
-- **Clearer setup.** Every step now says exactly where to paste what you copied.
+- **OBS overlay.** Each mute plays the quickscope (with its green screen keyed out) over your OBS scene, plus the hitmarker, "+100" and a killfeed line. The Windows installer adds it to OBS for you. Then click **Start Virtual Camera** in OBS and pick **OBS Virtual Camera** as your camera in Discord.
+- **Updates install themselves on Windows.** DogMute checks GitHub every 6 hours and installs a new version silently once you're not in a voice call. Your settings stay. You can turn this off under **Settings → DogMute**. If you're on 1.1.1 or older, install this version by hand once.
+- **Lighter default speech model.** `small.en` runs on any computer. With an NVIDIA card (Windows, or Linux with `install.sh`), pick `large-v3-turbo` under **Settings → Words → Speech model** for the best accuracy.
 
-**Good to know**
+## Good to know
 
-- Windows 10 version 2004 or newer, or Windows 11 (64-bit), and the Discord desktop app.
-- No admin rights needed. DogMute hears only Discord (using Windows' own per-app audio capture, no driver) and never your microphone.
-- Windows may say "Windows protected your PC" because the installer isn't code-signed. Click **More info → Run anyway**.
-- Got an NVIDIA graphics card? Tick **Use my NVIDIA graphics card** in the installer (a 1.2 GB download) so speech runs on the card.
-
-See the [README](https://github.com/dogsaredogsnthatscool/dogmute#on-windows) for setup and troubleshooting.
+- **Windows:** no admin rights needed. DogMute hears only Discord (Windows' own per-app audio capture, no driver) and never your microphone. Windows may say "Windows protected your PC" because the installer isn't code-signed: click **More info → Run anyway**. Got an NVIDIA card? Tick **Use my NVIDIA graphics card** in the installer (a 1.2 GB download).
+- **Linux:** the Flatpak needs Flathub set up (for its runtime). It hears only Discord's voice output, never a microphone.
+- **Mac:** macOS asks once whether Python may record the screen and system audio. That is DogMute hearing Discord; it keeps no picture.

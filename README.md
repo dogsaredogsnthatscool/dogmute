@@ -9,43 +9,27 @@ offline, and asks the Discord app to mute the person who said a word on your lis
 
 <img src="dogmute/static/icon.png" width="96" alt="DogMute icon">
 
+## Download
+
+Pick your computer. Each one has its own steps below.
+
+| Your computer | Download | Then |
+| --- | --- | --- |
+| **Windows** 10 (version 2004+) or 11, 64-bit | [**DogMute-Setup.exe**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-Setup.exe) | Run it. [Windows steps](#on-windows) |
+| **Linux** (with PipeWire) | [**DogMute.flatpak**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute.flatpak) | Open it. [Linux steps](#on-linux) |
+| **Mac**, macOS 13 Ventura or newer | No file: one Terminal command | [Mac steps](#on-a-mac) |
+
+All of them need the **Discord desktop app** (not Discord in a browser). Every release is on the
+[releases page](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest).
+
 ## Quick start
-
-**On Windows?** Download [`DogMute-Setup.exe`](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest) and
-see [On Windows](#on-windows). **On Linux and want one file?** See [As a Flatpak](#as-a-flatpak). The steps below are
-for Linux; a Mac has its own list just after.
-
-1. Open the **Discord desktop app** and log in.
-2. Run: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
-   (or `git clone` this repo and run `./install.sh`). It checks your computer and tells you how to fix anything missing.
-3. Your browser opens **http://127.0.0.1:8853**. Follow the 5 numbered steps; each gets a tick when it works.
-4. Join a voice call. That's it: DogMute runs in the background and starts by itself when you log in.
-5. Stuck? See [Troubleshooting](#troubleshooting).
-
-### On a Mac
-
-macOS 13 Ventura or newer. Apple Silicon runs the accurate speech model on its GPU (macOS 14+); Intel Macs use the CPU.
-
-1. Install [Homebrew](https://brew.sh) and the Xcode Command Line Tools (`xcode-select --install`), then
-   `brew install python@3.13`.
-2. Open the **Discord desktop app** and log in.
-3. In Terminal, run the same command:
-   `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
-4. Follow the 5 steps on the page. At step 4 macOS asks whether **Python** may record the screen and system audio.
-   That's DogMute hearing Discord (it keeps no picture and never opens your microphone). Click **Open System Settings**,
-   turn on **Python** under **Privacy & Security → Screen & System Audio Recording**, then click **Restart DogMute** on
-   the page.
-
-DogMute uses Apple's ScreenCaptureKit to hear only the Discord app, so no audio driver is needed. If you'd rather not
-give that permission, use [BlackHole](#blackhole-instead-of-screen-recording) instead.
 
 ### On Windows
 
 Windows 10 version 2004 or newer, or Windows 11 (64-bit). No admin rights, no Python, no driver.
 
 1. Open the **Discord desktop app** and log in.
-2. Download **`DogMute-Setup.exe`** from the [latest release](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest)
-   and run it. The installer isn't code-signed, so Windows may say *"Windows protected your PC"*: click
+2. Download [**`DogMute-Setup.exe`**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute-Setup.exe) and run it. The installer isn't code-signed, so Windows may say *"Windows protected your PC"*: click
    **More info → Run anyway**.
 3. Got an NVIDIA graphics card? Leave **Use my NVIDIA graphics card** ticked: it downloads NVIDIA's speech libraries once
    (about 1.2 GB), so speech runs on the card and you can pick the most accurate model, `large-v3-turbo`, under
@@ -64,14 +48,61 @@ away. To only be told, untick **Settings → DogMute → Install updates by itse
 `DogMute-Setup.exe` and it updates without asking anything (the boxes you ticked last time stay ticked), then opens
 DogMute again.
 
+DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
+*Application Audio Capture*). Other apps, games and your microphone are never heard.
+
+### On Linux
+
+**With the Flatpak (one file):**
+
+1. Download [**`DogMute.flatpak`**](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest/download/DogMute.flatpak) and open it (GNOME
+   Software or KDE Discover install it), or run `flatpak install --user DogMute.flatpak`. Flathub must be set up, for
+   the runtime it uses.
+2. Open **DogMute** from your app menu. It starts, asks to run in the background when you log in (say yes), and opens
+   **http://127.0.0.1:8853** in your browser. Follow the 5 steps.
+3. To update, download the new `DogMute.flatpak` and open it. Your settings stay (in
+   `~/.var/app/com.dogmosh.DogMute`). The page tells you when a new version is out.
+
+The Flatpak runs speech on the CPU with `small.en` (the NVIDIA speech libraries aren't in it), and it can't see other
+programs, so it adds its overlay to OBS once OBS 31 or newer has been closed. It may read and write only what it needs:
+PipeWire (to hear Discord, never a microphone), Discord's local socket, OBS's settings folder, cameras (the killfeed
+camera) and notifications. To build it yourself: `flatpak/build.sh 1.3.0` (needs `org.flatpak.Builder` and
+`org.freedesktop.Sdk//25.08` from Flathub).
+
+**Or with the install command** (runs from a folder you can update with git; speech can use an NVIDIA card):
+
+1. Open the **Discord desktop app** and log in.
+2. Run: `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
+   (or `git clone` this repo and run `./install.sh`). It checks your computer and tells you how to fix anything missing.
+3. Your browser opens **http://127.0.0.1:8853**. Follow the 5 numbered steps; each gets a tick when it works.
+4. Join a voice call. That's it: DogMute runs in the background and starts by itself when you log in.
+5. Stuck? See [Troubleshooting](#troubleshooting).
+
 **Updates install themselves on Linux too**, when DogMute runs as the background service `./install.sh` sets up. Once
 you're not in a voice call, git gets the new release's tag from GitHub, moves your DogMute folder forward to it, and
 `./install.sh` runs again on its own (its log is `~/.local/state/dogmute/update/install.log`), then the service
 restarts. Your settings, words and models stay. It only does this when you haven't changed DogMute's files yourself.
-To update by hand, run `./install.sh --update` in your DogMute folder. On macOS the bar shows that command.
+To update by hand, run `./install.sh --update` in your DogMute folder.
 
-DogMute hears only the Discord app, through Windows' own per-app sound capture (the same one OBS uses for
-*Application Audio Capture*). Other apps, games and your microphone are never heard.
+### On a Mac
+
+macOS 13 Ventura or newer. Apple Silicon runs the accurate speech model on its GPU (macOS 14+); Intel Macs use the CPU.
+
+1. Install [Homebrew](https://brew.sh) and the Xcode Command Line Tools (`xcode-select --install`), then
+   `brew install python@3.13`.
+2. Open the **Discord desktop app** and log in.
+3. In Terminal, run:
+   `curl -fsSL https://raw.githubusercontent.com/dogsaredogsnthatscool/dogmute/main/install.sh | bash`
+4. Follow the 5 steps on the page. At step 4 macOS asks whether **Python** may record the screen and system audio.
+   That's DogMute hearing Discord (it keeps no picture and never opens your microphone). Click **Open System Settings**,
+   turn on **Python** under **Privacy & Security → Screen & System Audio Recording**, then click **Restart DogMute** on
+   the page.
+
+To update, run `./install.sh --update` in your DogMute folder (`~/.local/share/dogmute` if you used the
+command above); the page tells you when a new version is out.
+
+DogMute uses Apple's ScreenCaptureKit to hear only the Discord app, so no audio driver is needed. If you'd rather not
+give that permission, use [BlackHole](#blackhole-instead-of-screen-recording) instead.
 
 <img src="docs/page.png" width="520" alt="DogMute's page during a call: who's talking, friends, mutes with Unmute buttons">
 
@@ -177,22 +208,6 @@ py -3.13 -m venv .venv; .venv\Scripts\pip install -r requirements.txt   # + -r r
 .venv\Scripts\python -m dogmute.winapp                                     # tray + page; python -m dogmute for the engine alone
 win\build.ps1 -Version 1.0.0                                               # or build the installer: dist\DogMute-Setup.exe
 ```
-
-### As a Flatpak
-
-1. Download [`DogMute.flatpak`](https://github.com/dogsaredogsnthatscool/dogmute/releases/latest) and open it (GNOME
-   Software or KDE Discover install it), or run `flatpak install --user DogMute.flatpak`. Flathub must be set up, for
-   the runtime it uses.
-2. Open **DogMute** from your app menu. It starts, asks to run in the background when you log in (say yes), and opens
-   **http://127.0.0.1:8853** in your browser. Follow the 5 steps.
-3. To update, download the new `DogMute.flatpak` and open it. Your settings stay (in
-   `~/.var/app/com.dogmosh.DogMute`). The page tells you when a new version is out.
-
-The Flatpak runs speech on the CPU with `small.en` (the NVIDIA speech libraries aren't in it), and it can't see other
-programs, so it adds its overlay to OBS once OBS 31 or newer has been closed. It may read and write only what it needs:
-PipeWire (to hear Discord, never a microphone), Discord's local socket, OBS's settings folder, cameras (the killfeed
-camera) and notifications. To build it yourself: `flatpak/build.sh 1.3.0` (needs `org.flatpak.Builder` and
-`org.freedesktop.Sdk//25.08` from Flathub).
 
 ## Setup (the 5 steps on the page)
 
