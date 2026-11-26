@@ -7,7 +7,6 @@ import numpy as np
 
 REPO, FILE = "Wespeaker/wespeaker-voxceleb-resnet34-LM", "voxceleb_resnet34_LM.onnx"
 RATE = 16000
-MIN_S = 1.0          # shortest solo stretch worth learning from
 MAX_SHOTS = 30       # embeddings kept per person (newest win)
 
 

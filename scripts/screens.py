@@ -3,7 +3,6 @@
 
     python3 scripts/screens.py          (system Python with python3-gi + WebKit2GTK 4.1; it starts the fake server itself)
 """
-import json
 import os
 import subprocess
 import sys

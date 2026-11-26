@@ -10,7 +10,6 @@ a Ring, Listener.check with the chosen model) as one person talking, scored agai
 import argparse
 import json
 import sys
-import time
 import types
 import wave
 from pathlib import Path

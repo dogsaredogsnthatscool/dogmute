@@ -70,11 +70,9 @@ input[type=checkbox] { accent-color: #0e7bd6; }
 .hint { margin: 8px 0 0; line-height: 1.45; }
 .lcd { font: 20px/1 var(--pix); color: var(--lcd); text-shadow: 0 0 6px #7dffb366; letter-spacing: 1px; }
 .lcd.hot { color: var(--hot); text-shadow: 0 0 6px #ff2e8866; }
-.sunk { background: #000; border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); }
 .count { font: 16px var(--pix); color: var(--lcd); }
 .ok { color: var(--acid); }
 .bad { color: var(--hot); }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
 
 /* dialogs */
 dialog { background: var(--face); color: var(--text); border: 2px solid; border-color: var(--blt) var(--bdk) var(--bdk) var(--blt); padding: 0; }
