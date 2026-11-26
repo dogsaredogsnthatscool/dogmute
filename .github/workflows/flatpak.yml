@@ -16,7 +16,7 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
       options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Version
         env: {IN_VERSION: "${{ inputs.version }}"}
         run: |
@@ -28,7 +28,7 @@ jobs:
           manifest-path: flatpak/com.dogmosh.DogMute.yml
           cache-key: flatpak-${{ hashFiles('flatpak/python-deps.json') }}
           upload-artifact: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: {name: DogMute-flatpak, path: DogMute.flatpak}
 
   release:
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: {name: DogMute-flatpak}
       - name: Add to the release
         env: {GH_TOKEN: "${{ github.token }}"}

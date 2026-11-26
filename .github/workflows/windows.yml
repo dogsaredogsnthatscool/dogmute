@@ -14,10 +14,17 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: "3.13"}
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: MSVC (the Visual Studio C++ environment, as a Developer PowerShell has it)
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          cmd /c "`"$vs\VC\Auxiliary\Build\vcvars64.bat`" >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') { "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV }
+          }
       - uses: LABSN/sound-ci-helpers@v1
       - name: OBS Studio (its virtual camera is what Discord picks)
         run: choco install obs-studio -y --no-progress
@@ -38,10 +45,17 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: "3.13"}
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: MSVC (the Visual Studio C++ environment, as a Developer PowerShell has it)
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          cmd /c "`"$vs\VC\Auxiliary\Build\vcvars64.bat`" >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') { "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV }
+          }
       - uses: LABSN/sound-ci-helpers@v1
       - name: Inno Setup
         run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
@@ -52,7 +66,7 @@ jobs:
           win\build.ps1 -Version $v -Python python
       - name: Install, run, uninstall
         run: win\smoke.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: {name: DogMute-Setup, path: dist/DogMute-Setup.exe}
       - name: Release
         if: github.ref_type == 'tag'
