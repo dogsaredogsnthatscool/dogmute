@@ -13,6 +13,16 @@ Every computer needs the **Discord desktop app**. New to DogMute? Follow the 5 s
 
 Ignore the two "Source code" files: they are for developers.
 
+## New in 1.3.1
+
+**Mac**
+
+- **DogMute as an app.** `DogMute-AppleSilicon.dmg` and `DogMute-Intel.dmg`: drag DogMute to Applications and open it. No Homebrew, Python or Terminal needed. It starts when you log in, and macOS's Privacy settings list it as DogMute.
+
+**Windows and Mac**
+
+- **Fixed:** while downloading a speech model, the app could start a second copy of itself.
+
 ## New in 1.3.0
 
 **Linux**
@@ -20,10 +30,6 @@ Ignore the two "Source code" files: they are for developers.
 - **DogMute as one file.** `DogMute.flatpak` installs from GNOME Software or KDE Discover, starts when you log in, and opens the setup page. Speech runs on the CPU in it. To update, open the new `DogMute.flatpak`; your settings stay.
 - **Updates install themselves** when you installed with `install.sh`, the same way as on Windows: once you're not in a voice call. To update by hand, run `./install.sh --update`.
 - **Fixed:** DogMute hears Discord again when PipeWire is newer than its own tools.
-
-**Mac**
-
-- **DogMute as an app.** `DogMute-AppleSilicon.dmg` and `DogMute-Intel.dmg`: drag DogMute to Applications and open it. No Homebrew, Python or Terminal needed. It starts when you log in, and macOS's Privacy settings list it as DogMute.
 
 **All computers**
 
